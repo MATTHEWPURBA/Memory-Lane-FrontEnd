@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Memory Lane",
+    "slug": "memory-lane-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#6200EE"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.memorylane.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#6200EE"
+      },
+      "package": "com.memorylane.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+} 
