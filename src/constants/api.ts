@@ -1,15 +1,15 @@
 // API Configuration
 export const API_CONFIG = {
-  // Base URL - Change this to your Flask server URL
-  BASE_URL: __DEV__ 
-    ? 'http://10.0.2.2:5000/api'  // Android emulator
-    : 'http://localhost:5000/api', // iOS simulator
+  // Base URL - Use environment variable or fallback to correct port
+  BASE_URL: process.env.API_BASE_URL || (__DEV__ 
+    ? 'http://10.0.2.2:5001/api'  // Android emulator
+    : 'http://localhost:5001/api'), // iOS simulator
   
   // Production URL (replace with your actual domain)
-  PRODUCTION_URL: 'https://your-memory-lane-api.com/api',
+  PRODUCTION_URL: process.env.PRODUCTION_API_URL || 'https://your-memory-lane-api.com/api',
   
   // Timeout settings
-  TIMEOUT: 30000, // 30 seconds
+  TIMEOUT: parseInt(process.env.API_TIMEOUT || '30000'), // 30 seconds
   
   // Retry settings
   MAX_RETRIES: 3,

@@ -1,7 +1,12 @@
 module.exports = {
   presets: ['module:metro-react-native-babel-preset'],
   plugins: [
-
+    [
+      'transform-inline-environment-variables',
+      {
+        include: ['EXPO_OS', 'API_BASE_URL', 'API_TIMEOUT', 'PRODUCTION_API_URL'],
+      },
+    ],
     [
       'module-resolver',
       {

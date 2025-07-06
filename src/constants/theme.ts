@@ -186,13 +186,6 @@ export const theme = {
         boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.18)',
       },
       default: {
-        shadowColor: '#000',
-        shadowOffset: {
-          width: 0,
-          height: 1,
-        },
-        shadowOpacity: 0.18,
-        shadowRadius: 1.0,
         elevation: 1,
       },
     }),
@@ -201,13 +194,6 @@ export const theme = {
         boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.25)',
       },
       default: {
-        shadowColor: '#000',
-        shadowOffset: {
-          width: 0,
-          height: 2,
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
         elevation: 5,
       },
     }),
@@ -216,13 +202,6 @@ export const theme = {
         boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.30)',
       },
       default: {
-        shadowColor: '#000',
-        shadowOffset: {
-          width: 0,
-          height: 4,
-        },
-        shadowOpacity: 0.30,
-        shadowRadius: 4.65,
         elevation: 8,
       },
     }),

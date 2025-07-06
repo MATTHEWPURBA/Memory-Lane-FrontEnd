@@ -18,6 +18,7 @@ import AssetLoader from '@/utils/asset-loader';
 import SplashScreen from '@/components/SplashScreen';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
+
 const AppContent = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);

@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import { DeviceInfo } from '@/utils/PlatformComponents';
+import { DeviceInfo } from './PlatformComponents';
 
 class ErrorReporting {
   private static instance: ErrorReporting;

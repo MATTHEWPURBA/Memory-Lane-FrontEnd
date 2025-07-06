@@ -76,10 +76,11 @@ src/
 
 4. **Configure environment**
    ```bash
-   # Copy environment template
-   cp .env.example .env
+   # Run the setup script to create .env file
+   ./setup-env.sh
    
-   # Edit .env with your configuration
+   # Or manually copy and edit the environment file
+   cp .env.example .env
    nano .env
    ```
 
@@ -107,7 +108,7 @@ Create a `.env` file in the root directory:
 
 ```env
 # API Configuration
-API_BASE_URL=http://localhost:5000/api
+API_BASE_URL=http://localhost:5001/api
 API_TIMEOUT=30000
 
 # Google Maps (Android)
@@ -127,6 +128,21 @@ ANALYTICS_KEY=your_analytics_key
 ### Backend Configuration
 
 The app is designed to work with the Flask backend. Make sure your backend is running and accessible at the configured API URL.
+
+**Important**: The default API URL is set to `http://localhost:5001/api`. If your backend is running on a different port, update the `API_BASE_URL` in your `.env` file.
+
+### API Configuration
+
+The app uses environment variables for API configuration:
+
+- **Development**: `http://localhost:5001/api`
+- **Android Emulator**: `http://10.0.2.2:5001/api`
+- **iOS Simulator**: `http://localhost:5001/api`
+
+To change the API URL:
+1. Edit the `.env` file
+2. Update `API_BASE_URL` to your backend URL
+3. Restart the development server
 
 ## 📱 Screenshots
 

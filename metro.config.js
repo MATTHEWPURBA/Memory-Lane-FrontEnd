@@ -4,6 +4,20 @@ const path = require('path');
 // Set environment variables
 process.env.EXPO_OS = 'web';
 
+// Suppress deprecation warnings for web
+if (process.env.NODE_ENV === 'development') {
+  const originalWarn = console.warn;
+  console.warn = (...args) => {
+    const message = args[0];
+    if (typeof message === 'string') {
+      if (message.includes('pointerEvents') || message.includes('shadow*')) {
+        return; // Suppress these warnings
+      }
+    }
+    originalWarn.apply(console, args);
+  };
+}
+
 /**
  * Metro configuration with simplified web polyfills
  * https://facebook.github.io/metro/docs/configuration
