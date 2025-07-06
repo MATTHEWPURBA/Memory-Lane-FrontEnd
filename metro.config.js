@@ -1,7 +1,8 @@
 const {getDefaultConfig, mergeConfig} = require('@react-native/metro-config');
+const path = require('path');
 
 /**
- * Metro configuration with web polyfills
+ * Metro configuration with simplified web polyfills
  * https://facebook.github.io/metro/docs/configuration
  *
  * @type {import('metro-config').MetroConfig}
@@ -20,18 +21,12 @@ const config = {
     assetExts: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'ttf', 'otf', 'woff', 'woff2'],
     sourceExts: ['js', 'jsx', 'json', 'ts', 'tsx', 'web.js', 'web.jsx', 'web.ts', 'web.tsx'],
     platforms: ['web', 'ios', 'android'],
+    resolverMainFields: ['browser', 'react-native', 'main'],
     alias: {
       'react-native$': 'react-native-web',
+      // Only add aliases for libraries that have web alternatives
       'react-native-linear-gradient': 'react-native-web-linear-gradient',
-      'react-native-maps': require.resolve('./src/utils/webPolyfills/MapViewPolyfill'),
-      'react-native-device-info': require.resolve('./src/utils/webPolyfills/DeviceInfoPolyfill'),
-      'react-native-geolocation-service': require.resolve('./src/utils/webPolyfills/GeolocationPolyfill'),
-      'react-native-image-picker': require.resolve('./src/utils/webPolyfills/ImagePickerPolyfill'),
-      'react-native-image-crop-picker': require.resolve('./src/utils/webPolyfills/ImagePickerPolyfill'),
-      'react-native-keychain': require.resolve('./src/utils/webPolyfills/KeychainPolyfill'),
-      'react-native-splash-screen': require.resolve('./src/utils/webPolyfills/SplashScreenPolyfill'),
     },
-    resolverMainFields: ['browser', 'react-native', 'main'],
   },
 };
 

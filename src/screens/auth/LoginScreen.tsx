@@ -22,19 +22,8 @@ import { LoginRequest } from '@/types';
 import { useNavigation } from '@react-navigation/native';
 import Logger from '@/utils/logger';
 
-
-// Platform-specific LinearGradient
-const LinearGradient = Platform.select({
-  web: ({ children, colors, style, ...props }: any) => {
-    const gradientStyle = {
-      background: `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 100%)`,
-      ...style,
-    };
-    return React.createElement('div', { style: gradientStyle, ...props }, children);
-  },
-  default: require('react-native-linear-gradient').default,
-});
-
+// Import platform-specific LinearGradient
+import { LinearGradient } from '@/utils/PlatformComponents';
 
 const LoginScreen: React.FC = () => {
   const [formData, setFormData] = useState<LoginRequest>({
@@ -44,6 +33,7 @@ const LoginScreen: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Partial<LoginRequest>>({});
+  const [generalError, setGeneralError] = useState('');
 
   const { login } = useAuth();
   const themeColors = useTheme();
@@ -81,11 +71,12 @@ const LoginScreen: React.FC = () => {
     if (!validateForm()) return;
 
     setIsLoading(true);
+    setGeneralError('');
     try {
       await login(formData);
-    } catch (error) {
+    } catch (error: any) {
       setErrors({});
-      setError(error.message);
+      setGeneralError(error.message || 'Login failed');
       Logger.logError(error, { context: 'Login' });
     } finally {
       setIsLoading(false);
@@ -97,131 +88,132 @@ const LoginScreen: React.FC = () => {
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
+    if (generalError) {
+      setGeneralError('');
+    }
   };
 
   return (
     <SafeAreaView style={containerStyle}>
-      {LinearGradient && (
-        <LinearGradient
-          colors={theme.colors.gradient?.primary || [theme.colors.primary, theme.colors.secondary]}
-          style={styles.background}
+      <LinearGradient
+        colors={theme.colors.gradient?.primary || [theme.colors.primary, theme.colors.secondary]}
+        style={styles.background}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardView}
         >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.keyboardView}
+          <ScrollView 
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
           >
-            <ScrollView 
-              contentContainerStyle={styles.scrollContent}
-              showsVerticalScrollIndicator={false}
-            >
-              <View style={styles.formContainer}>
-                {/* App Logo/Title */}
-                <View style={styles.header}>
-                  <Icon 
-                    name="map-marker-path" 
-                    size={60} 
-                    color={theme.colors.onPrimary} 
-                  />
-                  <Text style={[styles.title, { color: theme.colors.onPrimary }]}>
-                    Memory Lane
-                  </Text>
-                  <Text style={[styles.subtitle, { color: theme.colors.onPrimary }]}>
-                    Welcome back
-                  </Text>
-                </View>
-
-                {/* Login Form */}
-                <View style={styles.form}>
-                  {/* Username/Email Input */}
-                  <TextInput
-                    mode="outlined"
-                    label="Username or Email"
-                    value={formData.username}
-                    onChangeText={(value) => handleInputChange('username', value)}
-                    error={!!errors.username}
-                    style={styles.input}
-                    left={<TextInput.Icon icon="account" />}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                  {errors.username && (
-                    <HelperText type="error" visible={true}>
-                      {errors.username}
-                    </HelperText>
-                  )}
-
-                  {/* Password Input */}
-                  <TextInput
-                    mode="outlined"
-                    label="Password"
-                    value={formData.password}
-                    onChangeText={(value) => handleInputChange('password', value)}
-                    error={!!errors.password}
-                    secureTextEntry={!showPassword}
-                    style={styles.input}
-                    left={<TextInput.Icon icon="lock" />}
-                    right={
-                      <TextInput.Icon
-                        icon={showPassword ? "eye-off" : "eye"}
-                        onPress={() => setShowPassword(!showPassword)}
-                      />
-                    }
-                  />
-                  {errors.password && (
-                    <HelperText type="error" visible={true}>
-                      {errors.password}
-                    </HelperText>
-                  )}
-
-                  {/* General Error */}
-                  {generalError ? (
-                    <HelperText type="error" visible={true}>
-                      {generalError}
-                    </HelperText>
-                  ) : null}
-
-                  {/* Login Button */}
-                  <Button
-                    mode="contained"
-                    onPress={handleLogin}
-                    loading={isLoading}
-                    disabled={isLoading}
-                    style={styles.loginButton}
-                    contentStyle={styles.buttonContent}
-                  >
-                    {isLoading ? 'Signing In...' : 'Sign In'}
-                  </Button>
-
-                  {/* Forgot Password */}
-                  <Button
-                    mode="text"
-                    onPress={() => navigation.navigate('ForgotPassword' as never)}
-                    style={styles.forgotButton}
-                    textColor={theme.colors.onPrimary}
-                  >
-                    Forgot Password?
-                  </Button>
-                </View>
-
-                {/* Sign Up Link */}
-                <View style={styles.footer}>
-                  <Text style={[styles.footerText, { color: theme.colors.onPrimary }]}>
-                    Don't have an account?{' '}
-                  </Text>
-                  <Button
-                    mode="text"
-                    onPress={() => navigation.navigate('Register' as never)}
-                    textColor={theme.colors.onPrimary}
-                    labelStyle={styles.signUpText}
-                  >
-                    Sign Up
-                  </Button>
-                </View>
+            <View style={styles.formContainer}>
+              {/* App Logo/Title */}
+              <View style={styles.header}>
+                <Icon 
+                  name="map-marker-path" 
+                  size={60} 
+                  color={theme.colors.onPrimary} 
+                />
+                <Text style={[styles.title, { color: theme.colors.onPrimary }]}>
+                  Memory Lane
+                </Text>
+                <Text style={[styles.subtitle, { color: theme.colors.onPrimary }]}>
+                  Welcome back
+                </Text>
               </View>
-            </ScrollView>
-          </KeyboardAvoidingView>
-        </LinearGradient>
-      )}
+
+              {/* Login Form */}
+              <View style={styles.form}>
+                {/* Username/Email Input */}
+                <TextInput
+                  mode="outlined"
+                  label="Username or Email"
+                  value={formData.username}
+                  onChangeText={(value) => handleInputChange('username', value)}
+                  error={!!errors.username}
+                  style={styles.input}
+                  left={<TextInput.Icon icon="account" />}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                {errors.username && (
+                  <HelperText type="error" visible={true}>
+                    {errors.username}
+                  </HelperText>
+                )}
+
+                {/* Password Input */}
+                <TextInput
+                  mode="outlined"
+                  label="Password"
+                  value={formData.password}
+                  onChangeText={(value) => handleInputChange('password', value)}
+                  error={!!errors.password}
+                  secureTextEntry={!showPassword}
+                  style={styles.input}
+                  left={<TextInput.Icon icon="lock" />}
+                  right={
+                    <TextInput.Icon
+                      icon={showPassword ? "eye-off" : "eye"}
+                      onPress={() => setShowPassword(!showPassword)}
+                    />
+                  }
+                />
+                {errors.password && (
+                  <HelperText type="error" visible={true}>
+                    {errors.password}
+                  </HelperText>
+                )}
+
+                {/* General Error */}
+                {generalError ? (
+                  <HelperText type="error" visible={true}>
+                    {generalError}
+                  </HelperText>
+                ) : null}
+
+                {/* Login Button */}
+                <Button
+                  mode="contained"
+                  onPress={handleLogin}
+                  loading={isLoading}
+                  disabled={isLoading}
+                  style={styles.loginButton}
+                  contentStyle={styles.buttonContent}
+                >
+                  {isLoading ? 'Signing In...' : 'Sign In'}
+                </Button>
+
+                {/* Forgot Password */}
+                <Button
+                  mode="text"
+                  onPress={() => navigation.navigate('ForgotPassword' as never)}
+                  style={styles.forgotButton}
+                  textColor={theme.colors.onPrimary}
+                >
+                  Forgot Password?
+                </Button>
+              </View>
+
+              {/* Sign Up Link */}
+              <View style={styles.footer}>
+                <Text style={[styles.footerText, { color: theme.colors.onPrimary }]}>
+                  Don't have an account?{' '}
+                </Text>
+                <Button
+                  mode="text"
+                  onPress={() => navigation.navigate('Register' as never)}
+                  textColor={theme.colors.onPrimary}
+                  labelStyle={styles.signUpText}
+                >
+                  Sign Up
+                </Button>
+              </View>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </LinearGradient>
     </SafeAreaView>
   );
 };
