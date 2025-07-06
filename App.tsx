@@ -11,7 +11,8 @@ import { LocationProvider } from '@/store/LocationContext';
 import { MemoryProvider } from '@/store/MemoryContext';
 import { theme } from '@/constants/theme';
 import RootNavigator from '@/navigation/RootNavigator';
-import ErrorReporting from '@/utils/error-reporting';
+import ErrorReportingClass from '@/utils/error-reporting';
+const ErrorReporting = ErrorReportingClass.getInstance();
 import Logger from '@/utils/logger';
 import AssetLoader from '@/utils/asset-loader';
 import SplashScreen from '@/components/SplashScreen';
@@ -31,7 +32,7 @@ const AppContent = () => {
       
       // Initialize error reporting
       await Logger.logInfo('Initializing error reporting');
-      ErrorReporting.getInstance();
+      // ErrorReporting is already initialized
 
       // Load persisted logs
       await Logger.logInfo('Loading persisted logs');
@@ -49,7 +50,7 @@ const AppContent = () => {
       setIsLoading(false);
     } catch (error) {
       await Logger.logError(error, { context: 'App Initialization' });
-      await ErrorReporting.getInstance().reportError(error);
+      await ErrorReporting.reportError(error);
       setError(error);
       setIsLoading(false);
     }

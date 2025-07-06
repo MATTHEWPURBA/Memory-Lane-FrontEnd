@@ -1,6 +1,9 @@
 const {getDefaultConfig, mergeConfig} = require('@react-native/metro-config');
 const path = require('path');
 
+// Set environment variables
+process.env.EXPO_OS = 'web';
+
 /**
  * Metro configuration with simplified web polyfills
  * https://facebook.github.io/metro/docs/configuration

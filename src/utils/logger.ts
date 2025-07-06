@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import DeviceInfo from 'react-native-device-info';
+import { DeviceInfo } from '@/utils/PlatformComponents';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 

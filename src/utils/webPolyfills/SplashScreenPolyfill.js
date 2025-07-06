@@ -1,30 +1,12 @@
 // src/utils/webPolyfills/SplashScreenPolyfill.js
-const SplashScreen = {
+const SplashScreenPolyfill = {
     hide: () => {
-      // On web, we can hide any loading overlay if present
-      const splashElement = document.getElementById('splash-screen');
-      if (splashElement) {
-        splashElement.style.display = 'none';
-      }
-      
-      // Remove any loading class from body
-      document.body.classList.remove('loading');
-      
-      console.log('SplashScreen.hide() called on web');
+      // For web, we just resolve immediately
       return Promise.resolve();
     },
   
     show: () => {
-      // On web, we can show a loading overlay if needed
-      const splashElement = document.getElementById('splash-screen');
-      if (splashElement) {
-        splashElement.style.display = 'flex';
-      }
-      
-      // Add loading class to body
-      document.body.classList.add('loading');
-      
-      console.log('SplashScreen.show() called on web');
+      // For web, we just resolve immediately
       return Promise.resolve();
     },
   
@@ -34,8 +16,8 @@ const SplashScreen = {
     },
   
     hideAsync: () => {
-      return SplashScreen.hide();
+      return SplashScreenPolyfill.hide();
     },
   };
   
-  export default SplashScreen;
+  export default SplashScreenPolyfill;

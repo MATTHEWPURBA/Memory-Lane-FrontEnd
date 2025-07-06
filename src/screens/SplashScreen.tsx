@@ -1,9 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Dimensions, Animated } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
-import LinearGradient from 'react-native-linear-gradient';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { theme } from '@/constants/theme';
+import { LinearGradient } from '@/utils/PlatformComponents';
 
 const { width, height } = Dimensions.get('window');
 

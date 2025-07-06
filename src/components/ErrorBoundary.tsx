@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Logger from '@/utils/logger';
-import ErrorReporting from '@/utils/error-reporting';
+import ErrorReportingClass from '@/utils/error-reporting';
+const ErrorReporting = ErrorReportingClass.getInstance();
 
 interface Props {
   children: React.ReactNode;
@@ -24,7 +25,7 @@ class ErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     Logger.logError(error, { context: 'ErrorBoundary', errorInfo });
-    ErrorReporting.getInstance().reportError(error, errorInfo.componentStack);
+    ErrorReporting.reportError(error, errorInfo.componentStack);
   }
 
   render() {

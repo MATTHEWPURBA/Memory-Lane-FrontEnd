@@ -1,3 +1,3 @@
-import MapView, { Marker } from '../components/MapView';
+import MapView, { Marker } from '../utils/webPolyfills/MapViewPolyfill';
 export default MapView;
-export { Marker } from 'react-native-maps';
+export { Marker };

@@ -1,7 +1,11 @@
 // src/utils/PlatformComponents.web.ts
-export { default as LinearGradient } from './webPolyfills/LinearGradientPolyfill';
+import DeviceInfoPolyfill from './webPolyfills/DeviceInfoPolyfill';
+import LinearGradientPolyfill from './webPolyfills/LinearGradientPolyfill';
+
+export const DeviceInfo = DeviceInfoPolyfill;
+export const LinearGradient = LinearGradientPolyfill;
+
 export { default as MapView } from './webPolyfills/MapViewPolyfill';
-export { default as DeviceInfo } from './webPolyfills/DeviceInfoPolyfill';
 export { default as Geolocation } from './webPolyfills/GeolocationPolyfill';
 export { default as ImagePicker } from './webPolyfills/ImagePickerPolyfill';
 export { default as ImageCropPicker } from './webPolyfills/ImagePickerPolyfill';
