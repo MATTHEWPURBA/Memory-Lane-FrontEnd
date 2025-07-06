@@ -22,6 +22,7 @@
       "package": "com.memorylane.app"
     },
     "web": {
+      "name": "Memory Lane",
       "favicon": "./assets/favicon.png"
     }
   }

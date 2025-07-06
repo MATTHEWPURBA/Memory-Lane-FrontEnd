@@ -57,6 +57,25 @@ const AppContent = () => {
     }
   };
 
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      const observer = new MutationObserver(() => {
+        console.log('document.title changed to:', document.title);
+      });
+      observer.observe(document.querySelector('title')!, { childList: true });
+      return () => observer.disconnect();
+    }
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.title !== 'Memory Lane') {
+        document.title = 'Memory Lane';
+      }
+    }, 500);
+    return () => clearInterval(interval);
+  }, []);
+
   if (error) {
     // Show error state
     return (
@@ -103,6 +122,14 @@ const AppContent = () => {
 };
 
 const App = () => {
+  useEffect(() => {
+    // @ts-ignore
+    if (typeof window !== 'undefined' && typeof window.document !== 'undefined') {
+      console.log('Setting document.title to Memory Lane')
+      document.title = 'Memory Lane';
+
+    }
+  }, []);
   return (
     <ErrorBoundary>
       <AppContent />
