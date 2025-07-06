@@ -15,13 +15,26 @@ import {
   HelperText,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import LinearGradient from 'react-native-linear-gradient';
 import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { useAuth } from '@/store/AuthContext';
 import { theme } from '@/constants/theme';
 import { LoginRequest } from '@/types';
 import { useNavigation } from '@react-navigation/native';
 import Logger from '@/utils/logger';
+
+
+// Platform-specific LinearGradient
+const LinearGradient = Platform.select({
+  web: ({ children, colors, style, ...props }: any) => {
+    const gradientStyle = {
+      background: `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 100%)`,
+      ...style,
+    };
+    return React.createElement('div', { style: gradientStyle, ...props }, children);
+  },
+  default: require('react-native-linear-gradient').default,
+});
+
 
 const LoginScreen: React.FC = () => {
   const [formData, setFormData] = useState<LoginRequest>({
@@ -88,168 +101,127 @@ const LoginScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={containerStyle}>
-      <LinearGradient
-        colors={theme.colors.gradient.primary}
-        style={styles.background}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.keyboardView}
+      {LinearGradient && (
+        <LinearGradient
+          colors={theme.colors.gradient?.primary || [theme.colors.primary, theme.colors.secondary]}
+          style={styles.background}
         >
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.keyboardView}
           >
-            {/* Header */}
-            <View style={styles.header}>
-              <View style={styles.iconContainer}>
-                <Icon
-                  name="map-marker"
-                  size={60}
-                  color="#FFFFFF"
-                />
-              </View>
-              <Text style={styles.title}>Welcome Back</Text>
-              <Text style={styles.subtitle}>
-                Sign in to continue your journey
-              </Text>
-            </View>
+            <ScrollView 
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.formContainer}>
+                {/* App Logo/Title */}
+                <View style={styles.header}>
+                  <Icon 
+                    name="map-marker-path" 
+                    size={60} 
+                    color={theme.colors.onPrimary} 
+                  />
+                  <Text style={[styles.title, { color: theme.colors.onPrimary }]}>
+                    Memory Lane
+                  </Text>
+                  <Text style={[styles.subtitle, { color: theme.colors.onPrimary }]}>
+                    Welcome back
+                  </Text>
+                </View>
 
-            {/* Form */}
-            <View style={styles.form}>
-              {/* Username/Email Input */}
-              <View style={styles.inputContainer}>
-                <TextInput
-                  label="Username or Email"
-                  value={formData.username || formData.email || ''}
-                  onChangeText={(value) => {
-                    if (value.includes('@')) {
-                      handleInputChange('email', value);
-                      handleInputChange('username', '');
-                    } else {
-                      handleInputChange('username', value);
-                      handleInputChange('email', '');
+                {/* Login Form */}
+                <View style={styles.form}>
+                  {/* Username/Email Input */}
+                  <TextInput
+                    mode="outlined"
+                    label="Username or Email"
+                    value={formData.username}
+                    onChangeText={(value) => handleInputChange('username', value)}
+                    error={!!errors.username}
+                    style={styles.input}
+                    left={<TextInput.Icon icon="account" />}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  {errors.username && (
+                    <HelperText type="error" visible={true}>
+                      {errors.username}
+                    </HelperText>
+                  )}
+
+                  {/* Password Input */}
+                  <TextInput
+                    mode="outlined"
+                    label="Password"
+                    value={formData.password}
+                    onChangeText={(value) => handleInputChange('password', value)}
+                    error={!!errors.password}
+                    secureTextEntry={!showPassword}
+                    style={styles.input}
+                    left={<TextInput.Icon icon="lock" />}
+                    right={
+                      <TextInput.Icon
+                        icon={showPassword ? "eye-off" : "eye"}
+                        onPress={() => setShowPassword(!showPassword)}
+                      />
                     }
-                  }}
-                  mode="outlined"
-                  style={styles.input}
-                  contentStyle={styles.inputContent}
-                  outlineStyle={styles.inputOutline}
-                  left={<TextInput.Icon icon="account" />}
-                  error={!!errors.username}
-                  disabled={isLoading}
-                />
-                <HelperText type="error" visible={!!errors.username}>
-                  {errors.username}
-                </HelperText>
+                  />
+                  {errors.password && (
+                    <HelperText type="error" visible={true}>
+                      {errors.password}
+                    </HelperText>
+                  )}
+
+                  {/* General Error */}
+                  {generalError ? (
+                    <HelperText type="error" visible={true}>
+                      {generalError}
+                    </HelperText>
+                  ) : null}
+
+                  {/* Login Button */}
+                  <Button
+                    mode="contained"
+                    onPress={handleLogin}
+                    loading={isLoading}
+                    disabled={isLoading}
+                    style={styles.loginButton}
+                    contentStyle={styles.buttonContent}
+                  >
+                    {isLoading ? 'Signing In...' : 'Sign In'}
+                  </Button>
+
+                  {/* Forgot Password */}
+                  <Button
+                    mode="text"
+                    onPress={() => navigation.navigate('ForgotPassword' as never)}
+                    style={styles.forgotButton}
+                    textColor={theme.colors.onPrimary}
+                  >
+                    Forgot Password?
+                  </Button>
+                </View>
+
+                {/* Sign Up Link */}
+                <View style={styles.footer}>
+                  <Text style={[styles.footerText, { color: theme.colors.onPrimary }]}>
+                    Don't have an account?{' '}
+                  </Text>
+                  <Button
+                    mode="text"
+                    onPress={() => navigation.navigate('Register' as never)}
+                    textColor={theme.colors.onPrimary}
+                    labelStyle={styles.signUpText}
+                  >
+                    Sign Up
+                  </Button>
+                </View>
               </View>
-
-              {/* Password Input */}
-              <View style={styles.inputContainer}>
-                <TextInput
-                  label="Password"
-                  value={formData.password}
-                  onChangeText={(value) => handleInputChange('password', value)}
-                  mode="outlined"
-                  style={styles.input}
-                  contentStyle={styles.inputContent}
-                  outlineStyle={styles.inputOutline}
-                  left={<TextInput.Icon icon="lock" />}
-                  right={
-                    <TextInput.Icon
-                      icon={showPassword ? 'eye-off' : 'eye'}
-                      onPress={() => setShowPassword(!showPassword)}
-                    />
-                  }
-                  secureTextEntry={!showPassword}
-                  error={!!errors.password}
-                  disabled={isLoading}
-                />
-                <HelperText type="error" visible={!!errors.password}>
-                  {errors.password}
-                </HelperText>
-              </View>
-
-              {/* Forgot Password */}
-              <Button
-                mode="text"
-                onPress={() => {
-                  // Navigate to forgot password
-                }}
-                style={styles.forgotPassword}
-                labelStyle={styles.forgotPasswordText}
-                disabled={isLoading}
-              >
-                Forgot Password?
-              </Button>
-
-              {/* Login Button */}
-              <Button
-                mode="contained"
-                onPress={handleLogin}
-                loading={isLoading}
-                disabled={isLoading}
-                style={styles.loginButton}
-                contentStyle={styles.loginButtonContent}
-                labelStyle={styles.loginButtonLabel}
-              >
-                Sign In
-              </Button>
-
-              {/* Divider */}
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>or</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-              {/* Social Login Buttons */}
-              <View style={styles.socialButtons}>
-                <Button
-                  mode="outlined"
-                  onPress={() => {
-                    // Google login
-                  }}
-                  style={styles.socialButton}
-                  contentStyle={styles.socialButtonContent}
-                  disabled={isLoading}
-                >
-                  <Icon name="google" size={20} color={themeColors.colors.primary} />
-                  <Text style={styles.socialButtonText}>Google</Text>
-                </Button>
-
-                <Button
-                  mode="outlined"
-                  onPress={() => {
-                    // Apple login
-                  }}
-                  style={styles.socialButton}
-                  contentStyle={styles.socialButtonContent}
-                  disabled={isLoading}
-                >
-                  <Icon name="apple" size={20} color={themeColors.colors.primary} />
-                  <Text style={styles.socialButtonText}>Apple</Text>
-                </Button>
-              </View>
-
-              {/* Sign Up Link */}
-              <View style={styles.signUpContainer}>
-                <Text style={styles.signUpText}>Don't have an account? </Text>
-                <Button
-                  mode="text"
-                  onPress={() => {
-                    navigation.navigate('Register');
-                  }}
-                  labelStyle={styles.signUpLink}
-                  disabled={isLoading}
-                >
-                  Sign Up
-                </Button>
-              </View>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </LinearGradient>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </LinearGradient>
+      )}
     </SafeAreaView>
   );
 };
@@ -267,124 +239,56 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 32,
+    padding: 20,
+  },
+  formContainer: {
+    maxWidth: 400,
+    alignSelf: 'center',
+    width: '100%',
   },
   header: {
     alignItems: 'center',
-    marginBottom: 48,
-  },
-  iconContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-    ...theme.shadows.medium,
+    marginBottom: 40,
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    marginTop: 16,
     marginBottom: 8,
-    textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
-    textAlign: 'center',
+    fontSize: 18,
+    opacity: 0.8,
   },
   form: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 16,
-    padding: 24,
-    ...theme.shadows.large,
-  },
-  inputContainer: {
-    marginBottom: 16,
+    marginBottom: 30,
   },
   input: {
-    backgroundColor: 'transparent',
-  },
-  inputContent: {
-    paddingVertical: 8,
-  },
-  inputOutline: {
-    borderRadius: 12,
-  },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: 24,
-  },
-  forgotPasswordText: {
-    color: theme.colors.primary,
-    fontSize: 14,
+    marginBottom: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
   },
   loginButton: {
-    borderRadius: 12,
-    marginBottom: 24,
-    ...theme.shadows.medium,
+    marginTop: 20,
+    marginBottom: 10,
   },
-  loginButtonContent: {
+  buttonContent: {
     paddingVertical: 8,
   },
-  loginButtonLabel: {
+  forgotButton: {
+    alignSelf: 'center',
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  footerText: {
     fontSize: 16,
-    fontWeight: '600',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: theme.colors.outlineVariant,
-  },
-  dividerText: {
-    marginHorizontal: 16,
-    color: theme.colors.onSurfaceVariant,
-    fontSize: 14,
-  },
-  socialButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-  },
-  socialButton: {
-    flex: 1,
-    marginHorizontal: 8,
-    borderRadius: 12,
-    borderColor: theme.colors.outlineVariant,
-  },
-  socialButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-  },
-  socialButtonText: {
-    marginLeft: 8,
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  signUpContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   signUpText: {
-    color: theme.colors.onSurfaceVariant,
-    fontSize: 14,
-  },
-  signUpLink: {
-    color: theme.colors.primary,
-    fontSize: 14,
-    fontWeight: '600',
+    fontWeight: 'bold',
+    textDecorationLine: 'underline',
   },
 });
 
-export default LoginScreen; 
+export default LoginScreen;

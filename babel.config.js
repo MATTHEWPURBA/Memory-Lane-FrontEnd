@@ -15,6 +15,10 @@ module.exports = {
           '.jsx',
           '.js',
           '.json',
+          '.web.ts',
+          '.web.tsx',
+          '.web.js',
+          '.web.jsx',
         ],
         alias: {
           '@': './src',
@@ -32,4 +36,9 @@ module.exports = {
     ],
     'react-native-reanimated/plugin',
   ],
-}; 
+  env: {
+    production: {
+      plugins: ['react-native-paper/babel'],
+    },
+  },
+};
