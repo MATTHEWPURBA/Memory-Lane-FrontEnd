@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CORS Test - Memory Lane</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CORS Test - Memory Lane Backend</h1>
+        <p>This page tests the CORS configuration of your backend API.</p>
+        
+        <div class="test-section">
+            <h3>1. Health Check</h3>
+            <button onclick="testHealth()">Test Health Endpoint</button>
+            <div id="health-result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>2. CORS Preflight Test</h3>
+            <button onclick="testCorsPreflight()">Test CORS Preflight</button>
+            <div id="cors-result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>3. API Call Test</h3>
+            <button onclick="testApiCall()">Test API Call</button>
+            <div id="api-result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>4. Username Availability Test</h3>
+            <input type="text" id="username-input" placeholder="Enter username to test" value="testuser">
+            <button onclick="testUsernameAvailability()">Test Username Availability</button>
+            <div id="username-result"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5001/api';
+        
+        function logResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+        
+        async function testHealth() {
+            try {
+                logResult('health-result', 'Testing health endpoint...', 'info');
+                
+                const response = await fetch('http://localhost:5001/health');
+                const data = await response.text();
+                
+                logResult('health-result', `
+                    <strong>✅ Health check successful!</strong><br>
+                    Status: ${response.status}<br>
+                    Response: ${data}<br>
+                    Headers: <pre>${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}</pre>
+                `, 'success');
+            } catch (error) {
+                logResult('health-result', `
+                    <strong>❌ Health check failed!</strong><br>
+                    Error: ${error.message}
+                `, 'error');
+            }
+        }
+        
+        async function testCorsPreflight() {
+            try {
+                logResult('cors-result', 'Testing CORS preflight...', 'info');
+                
+                const response = await fetch(`${API_BASE_URL}/auth/check-username`, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Origin': 'http://localhost:8081',
+                        'Access-Control-Request-Method': 'POST',
+                        'Access-Control-Request-Headers': 'Content-Type'
+                    }
+                });
+                
+                logResult('cors-result', `
+                    <strong>✅ CORS preflight successful!</strong><br>
+                    Status: ${response.status}<br>
+                    Headers: <pre>${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}</pre>
+                `, 'success');
+            } catch (error) {
+                logResult('cors-result', `
+                    <strong>❌ CORS preflight failed!</strong><br>
+                    Error: ${error.message}
+                `, 'error');
+            }
+        }
+        
+        async function testApiCall() {
+            try {
+                logResult('api-result', 'Testing API call...', 'info');
+                
+                const response = await fetch(`${API_BASE_URL}/auth/check-username`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Origin': 'http://localhost:8081'
+                    },
+                    body: JSON.stringify({ username: 'testuser' })
+                });
+                
+                const data = await response.json();
+                
+                logResult('api-result', `
+                    <strong>✅ API call successful!</strong><br>
+                    Status: ${response.status}<br>
+                    Response: <pre>${JSON.stringify(data, null, 2)}</pre><br>
+                    Headers: <pre>${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}</pre>
+                `, 'success');
+            } catch (error) {
+                logResult('api-result', `
+                    <strong>❌ API call failed!</strong><br>
+                    Error: ${error.message}
+                `, 'error');
+            }
+        }
+        
+        async function testUsernameAvailability() {
+            try {
+                const username = document.getElementById('username-input').value;
+                logResult('username-result', `Testing username availability for: ${username}...`, 'info');
+                
+                const response = await fetch(`${API_BASE_URL}/auth/check-username`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Origin': 'http://localhost:8081'
+                    },
+                    body: JSON.stringify({ username })
+                });
+                
+                const data = await response.json();
+                
+                logResult('username-result', `
+                    <strong>✅ Username availability check successful!</strong><br>
+                    Status: ${response.status}<br>
+                    Username: ${data.data?.username || 'N/A'}<br>
+                    Available: ${data.data?.available ? 'Yes' : 'No'}<br>
+                    Response: <pre>${JSON.stringify(data, null, 2)}</pre>
+                `, 'success');
+            } catch (error) {
+                logResult('username-result', `
+                    <strong>❌ Username availability check failed!</strong><br>
+                    Error: ${error.message}
+                `, 'error');
+            }
+        }
+    </script>
+</body>
+</html> 
