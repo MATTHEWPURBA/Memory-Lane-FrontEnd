@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -59,6 +59,10 @@ const RegisterScreen: React.FC = () => {
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
   const [emailAvailable, setEmailAvailable] = useState<boolean | null>(null);
+  
+  // Debounce refs
+  const emailDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const usernameDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Validation functions
   const validateUsername = (username: string): string | undefined => {
@@ -148,12 +152,24 @@ const RegisterScreen: React.FC = () => {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
 
-    // Check availability for username and email
+    // Clear previous debounce timers
+    if (field === 'username' && usernameDebounceRef.current) {
+      clearTimeout(usernameDebounceRef.current);
+    }
+    if (field === 'email' && emailDebounceRef.current) {
+      clearTimeout(emailDebounceRef.current);
+    }
+
+    // Debounced availability checks
     if (field === 'username' && value.length >= 3) {
-      checkUsernameAvailability(value);
+      usernameDebounceRef.current = setTimeout(() => {
+        checkUsernameAvailability(value);
+      }, 500); // 500ms delay
     }
     if (field === 'email' && value.includes('@')) {
-      checkEmailAvailability(value);
+      emailDebounceRef.current = setTimeout(() => {
+        checkEmailAvailability(value);
+      }, 800); // 800ms delay for email (longer since email validation is more complex)
     }
   };
 
@@ -175,6 +191,12 @@ const RegisterScreen: React.FC = () => {
   const checkEmailAvailability = async (email: string) => {
     if (!email.includes('@')) return;
     
+    // Additional validation to prevent incomplete emails
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return; // Don't check incomplete emails
+    }
+    
     setIsCheckingEmail(true);
     try {
       const response = await apiService.checkEmailAvailability(email);
@@ -186,6 +208,21 @@ const RegisterScreen: React.FC = () => {
       setIsCheckingEmail(false);
     }
   };
+
+  // Cleanup function to clear debounce timers
+  const cleanupDebounceTimers = useCallback(() => {
+    if (emailDebounceRef.current) {
+      clearTimeout(emailDebounceRef.current);
+    }
+    if (usernameDebounceRef.current) {
+      clearTimeout(usernameDebounceRef.current);
+    }
+  }, []);
+
+  // Cleanup on component unmount
+  React.useEffect(() => {
+    return cleanupDebounceTimers;
+  }, [cleanupDebounceTimers]);
 
   const handleRegister = async () => {
     if (!validateForm()) {
