@@ -454,8 +454,46 @@ class ApiService {
     return this.request(`${API_ENDPOINTS.GEOSPATIAL.MEMORIES_IN_AREA}?${params}`, HTTP_METHODS.GET);
   }
 
+  async getNearbyMemories(latitude: number, longitude: number, radius: number = 0.5): Promise<any> {
+    const params = new URLSearchParams({
+      latitude: latitude.toString(),
+      longitude: longitude.toString(),
+      radius: (radius * 1000).toString(), // Convert km to meters
+    });
+    return this.request(`${API_ENDPOINTS.GEOSPATIAL.DISCOVER}?${params}`, HTTP_METHODS.GET);
+  }
+
+  async getMemoryHeatmap(north: number, south: number, east: number, west: number): Promise<any> {
+    const params = new URLSearchParams({
+      north: north.toString(),
+      south: south.toString(),
+      east: east.toString(),
+      west: west.toString(),
+    });
+    return this.request(`${API_ENDPOINTS.GEOSPATIAL.HEATMAP}?${params}`, HTTP_METHODS.GET);
+  }
+
   async getPopularLocations(): Promise<any> {
     return this.request(API_ENDPOINTS.GEOSPATIAL.POPULAR_LOCATIONS, HTTP_METHODS.GET);
+  }
+
+  async getNearbyUsers(latitude: number, longitude: number, radius: number = 1.0): Promise<any> {
+    const params = new URLSearchParams({
+      latitude: latitude.toString(),
+      longitude: longitude.toString(),
+      radius: (radius * 1000).toString(), // Convert km to meters
+    });
+    return this.request(`${API_ENDPOINTS.GEOSPATIAL.NEARBY_USERS}?${params}`, HTTP_METHODS.GET);
+  }
+
+  async calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): Promise<any> {
+    const params = new URLSearchParams({
+      lat1: lat1.toString(),
+      lon1: lon1.toString(),
+      lat2: lat2.toString(),
+      lon2: lon2.toString(),
+    });
+    return this.request(`${API_ENDPOINTS.GEOSPATIAL.DISTANCE}?${params}`, HTTP_METHODS.GET);
   }
 
   // Health Check

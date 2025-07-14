@@ -24,7 +24,6 @@
     "react-dom": "19.0.0",
     "react-native": "0.79.5",
     "react-native-config": "^1.5.1",
-    "react-native-device-info": "^10.11.0",
     "react-native-document-picker": "^9.0.1",
     "react-native-dotenv": "^3.4.9",
     "react-native-elements": "^3.4.3",
@@ -53,6 +52,10 @@
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
+    "@babel/plugin-transform-class-properties": "^7.27.1",
+    "@babel/plugin-transform-private-methods": "^7.27.1",
+    "@babel/plugin-transform-private-property-in-object": "^7.27.1",
+    "@babel/plugin-transform-react-jsx": "^7.27.1",
     "@babel/preset-env": "^7.20.0",
     "@babel/runtime": "^7.20.0",
     "@react-native-community/cli": "^13.5.1",

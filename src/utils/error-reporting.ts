@@ -1,87 +1,118 @@
 import { Platform } from 'react-native';
-import { DeviceInfo } from './PlatformComponents';
 
-class ErrorReporting {
-  private static instance: ErrorReporting;
-  private errors: Array<{
-    error: Error;
-    componentStack?: string;
-    timestamp: number;
-    deviceInfo: any;
-  }> = [];
+interface ErrorReport {
+  error: {
+    message: string;
+    stack?: string;
+    name?: string;
+  };
+  timestamp: string;
+  context?: string;
+  deviceInfo: any;
+  userInfo?: any;
+  additionalData?: any;
+}
 
-  private constructor() {
-    // Initialize error reporting
-    this.setupErrorHandlers();
-  }
+class ErrorReporter {
+  private static instance: ErrorReporter;
 
-  public static getInstance(): ErrorReporting {
-    if (!ErrorReporting.instance) {
-      ErrorReporting.instance = new ErrorReporting();
+  private constructor() {}
+
+  static getInstance(): ErrorReporter {
+    if (!ErrorReporter.instance) {
+      ErrorReporter.instance = new ErrorReporter();
     }
-    return ErrorReporting.instance;
+    return ErrorReporter.instance;
   }
 
   private async getDeviceInfo() {
     return {
       platform: Platform.OS,
       version: Platform.Version,
-      appVersion: await DeviceInfo.getVersion(),
-      buildNumber: await DeviceInfo.getBuildNumber(),
-      deviceModel: await DeviceInfo.getModel(),
-      systemVersion: await DeviceInfo.getSystemVersion(),
+      isPad: Platform.isPad,
+      isTV: Platform.isTV,
+      constants: Platform.constants,
     };
   }
 
-  private setupErrorHandlers() {
-    // Handle uncaught JS errors
-    ErrorUtils.setGlobalHandler(async (error: Error, isFatal?: boolean) => {
-      await this.reportError(error, undefined, isFatal);
-    });
-  }
-
-  public async reportError(
+  async reportError(
     error: Error,
-    componentStack?: string,
-    isFatal: boolean = false
-  ) {
+    context?: string,
+    userInfo?: any,
+    additionalData?: any
+  ): Promise<void> {
     try {
       const deviceInfo = await this.getDeviceInfo();
-      const errorReport = {
-        error,
-        componentStack,
-        timestamp: Date.now(),
+      
+      const errorReport: ErrorReport = {
+        error: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
+        timestamp: new Date().toISOString(),
+        context,
         deviceInfo,
-        isFatal,
+        userInfo,
+        additionalData,
       };
 
-      this.errors.push(errorReport);
-
-      // In production, you would send this to your error reporting service
-      console.error('Error Report:', {
-        message: error.message,
-        stack: error.stack,
-        componentStack,
-        deviceInfo,
-        isFatal,
-      });
-
-      // Keep only the last 10 errors
-      if (this.errors.length > 10) {
-        this.errors.shift();
+      // In development, log to console
+      if (__DEV__) {
+        console.error('Error Report:', errorReport);
       }
-    } catch (e) {
-      console.error('Failed to report error:', e);
+
+      // In production, send to your error reporting service
+      if (!__DEV__) {
+        // await this.sendToErrorService(errorReport);
+      }
+    } catch (reportingError) {
+      console.error('Failed to report error:', reportingError);
     }
   }
 
-  public getRecentErrors() {
-    return this.errors;
+  async reportWarning(
+    message: string,
+    context?: string,
+    userInfo?: any,
+    additionalData?: any
+  ): Promise<void> {
+    try {
+      const deviceInfo = await this.getDeviceInfo();
+      
+      const warningReport: ErrorReport = {
+        error: {
+          message,
+          name: 'Warning',
+        },
+        timestamp: new Date().toISOString(),
+        context,
+        deviceInfo,
+        userInfo,
+        additionalData,
+      };
+
+      // In development, log to console
+      if (__DEV__) {
+        console.warn('Warning Report:', warningReport);
+      }
+
+      // In production, send to your error reporting service
+      if (!__DEV__) {
+        // await this.sendToErrorService(warningReport);
+      }
+    } catch (reportingError) {
+      console.error('Failed to report warning:', reportingError);
+    }
   }
 
-  public clearErrors() {
-    this.errors = [];
+  setupGlobalErrorHandler(): void {
+    if (typeof ErrorUtils !== 'undefined') {
+      ErrorUtils.setGlobalHandler(async (error: Error, isFatal?: boolean) => {
+        await this.reportError(error, 'Global Error Handler', { isFatal });
+      });
+    }
   }
 }
 
-export default ErrorReporting; 
+export default ErrorReporter.getInstance(); 

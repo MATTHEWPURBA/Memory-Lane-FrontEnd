@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet, Dimensions, Platform } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
-import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import Logger from '@/utils/logger';
 
 const { width, height } = Dimensions.get('window');
@@ -41,11 +40,9 @@ const SplashScreen: React.FC = () => {
       <View style={styles.content}>
         {/* App Icon */}
         <View style={[styles.iconContainer, { backgroundColor: 'rgba(255, 255, 255, 0.2)' }]}>
-          <Icon 
-            name="map-marker" 
-            size={80} 
-            color={theme.colors.onPrimary} 
-          />
+          <Text style={[styles.iconText, { color: theme.colors.onPrimary }]}>
+            📍
+          </Text>
         </View>
 
         {/* App Name */}
@@ -92,6 +89,9 @@ const styles = StyleSheet.create({
         elevation: 5,
       },
     }),
+  },
+  iconText: {
+    fontSize: 60,
   },
   appName: {
     fontSize: 36,

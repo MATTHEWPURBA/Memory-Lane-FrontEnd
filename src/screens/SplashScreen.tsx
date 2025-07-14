@@ -1,9 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Dimensions, Animated, Platform } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
-import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import { theme } from '@/constants/theme';
-import { LinearGradient } from '@/utils/PlatformComponents';
 
 const { width, height } = Dimensions.get('window');
 
@@ -44,18 +42,11 @@ const SplashScreen: React.FC = () => {
   const themeColors = useTheme();
 
   return (
-    <LinearGradient
-      colors={theme.colors.gradient.primary}
-      style={styles.container}
-    >
+    <View style={[styles.container, { backgroundColor: theme.colors.gradient.primary[0] }]}>
       <View style={styles.content}>
         {/* App Icon */}
         <View style={styles.iconContainer}>
-          <Icon 
-            name="map-marker" 
-            size={80} 
-            color={themeColors.colors.onPrimary} 
-          />
+          <Text style={styles.iconText}>🗺️</Text>
         </View>
 
         {/* App Name */}
@@ -73,7 +64,7 @@ const SplashScreen: React.FC = () => {
           <LoadingDot delay={400} />
         </View>
       </View>
-    </LinearGradient>
+    </View>
   );
 };
 
@@ -96,6 +87,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 32,
     ...theme.shadows.large,
+  },
+  iconText: {
+    fontSize: 60,
   },
   appName: {
     fontSize: 36,

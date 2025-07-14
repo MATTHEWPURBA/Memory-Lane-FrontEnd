@@ -11,13 +11,11 @@ import { LocationProvider } from '@/store/LocationContext';
 import { MemoryProvider } from '@/store/MemoryContext';
 import { theme } from '@/constants/theme';
 import RootNavigator from '@/navigation/RootNavigator';
-import ErrorReportingClass from '@/utils/error-reporting';
-const ErrorReporting = ErrorReportingClass.getInstance();
+import ErrorReporter from '@/utils/error-reporting';
 import Logger from '@/utils/logger';
 import AssetLoader from '@/utils/asset-loader';
 import SplashScreen from '@/components/SplashScreen';
 import ErrorBoundary from '@/components/ErrorBoundary';
-
 
 const AppContent = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -33,15 +31,11 @@ const AppContent = () => {
       
       // Initialize error reporting
       await Logger.logInfo('Initializing error reporting');
-      // ErrorReporting is already initialized
-
-      // Load persisted logs
-      await Logger.logInfo('Loading persisted logs');
-      await Logger.loadPersistedLogs();
+      ErrorReporter.setupGlobalErrorHandler();
       
       // Log app start
       await Logger.logInfo('Logging app start');
-      await Logger.logAppStart();
+      await Logger.logInfo('App started successfully');
 
       // Preload assets
       await Logger.logInfo('Preloading assets');
@@ -51,8 +45,8 @@ const AppContent = () => {
       setIsLoading(false);
     } catch (error) {
       await Logger.logError(error, { context: 'App Initialization' });
-      await ErrorReporting.reportError(error);
-      setError(error);
+      await ErrorReporter.reportError(error as Error, 'App Initialization');
+      setError(error as Error);
       setIsLoading(false);
     }
   };
@@ -100,7 +94,7 @@ const AppContent = () => {
                 onStateChange={(state) => {
                   const currentRoute = state?.routes[state.routes.length - 1];
                   if (currentRoute) {
-                    Logger.logNavigationEvent(currentRoute.name, currentRoute.params);
+                    Logger.logNavigation(currentRoute.name, currentRoute.name, currentRoute.params);
                   }
                 }}
               >

@@ -1,13 +1,17 @@
 // src/utils/PlatformComponents.web.ts
-import DeviceInfoPolyfill from './webPolyfills/DeviceInfoPolyfill';
-import LinearGradientPolyfill from './webPolyfills/LinearGradientPolyfill';
+import LinearGradient from 'react-native-web-linear-gradient';
 
-export const DeviceInfo = DeviceInfoPolyfill;
-export const LinearGradient = LinearGradientPolyfill;
+export { LinearGradient };
 
 export { default as MapView } from './webPolyfills/MapViewPolyfill';
-export { default as Geolocation } from './webPolyfills/GeolocationPolyfill';
-export { default as ImagePicker } from './webPolyfills/ImagePickerPolyfill';
-export { default as ImageCropPicker } from './webPolyfills/ImagePickerPolyfill';
-export { default as Keychain } from './webPolyfills/KeychainPolyfill';
-export { default as SplashScreen } from './webPolyfills/SplashScreenPolyfill';
+export { default as Geolocation } from 'react-native-geolocation-service';
+
+import * as ImagePicker from 'react-native-image-picker';
+export { ImagePicker };
+
+export { default as ImageCropPicker } from 'react-native-image-crop-picker';
+
+import * as Keychain from 'react-native-keychain';
+export { Keychain };
+
+export { default as SplashScreen } from 'react-native-splash-screen';

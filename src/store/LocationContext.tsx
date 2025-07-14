@@ -1,9 +1,33 @@
 import React, { createContext, useContext, useReducer, useEffect, useState, ReactNode } from 'react';
 import { Platform, Alert } from 'react-native';
-import Geolocation from 'react-native-geolocation-service';
-import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
+import { Geolocation } from '@/utils/PlatformComponents';
 import Toast from 'react-native-toast-message';
 import { Location, LocationContextType } from '@/types';
+
+// Handle permissions import with error handling
+let permissions;
+try {
+  permissions = require('react-native-permissions');
+} catch (error) {
+  // Fallback for when native module is not available
+  permissions = {
+    check: () => Promise.resolve('unavailable'),
+    request: () => Promise.resolve('denied'),
+    PERMISSIONS: {
+      IOS: { LOCATION_WHEN_IN_USE: 'ios.permission.LOCATION_WHEN_IN_USE' },
+      ANDROID: { ACCESS_FINE_LOCATION: 'android.permission.ACCESS_FINE_LOCATION' },
+    },
+    RESULTS: {
+      UNAVAILABLE: 'unavailable',
+      DENIED: 'denied',
+      LIMITED: 'limited',
+      GRANTED: 'granted',
+      BLOCKED: 'blocked',
+    },
+  };
+}
+
+const { check, request, PERMISSIONS, RESULTS } = permissions;
 
 // Action Types
 type LocationAction =
@@ -172,43 +196,52 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
         maximumAge: 10000,
       };
 
-      Geolocation.getCurrentPosition(
-        (position) => {
-          const location: Location = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-            altitude: position.coords.altitude,
-            timestamp: position.timestamp,
-          };
+      try {
+        Geolocation.getCurrentPosition(
+          (position) => {
+            const location: Location = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              accuracy: position.coords.accuracy,
+              altitude: position.coords.altitude,
+              timestamp: position.timestamp,
+            };
 
-          dispatch({ type: 'SET_CURRENT_LOCATION', payload: location });
-          dispatch({ type: 'SET_IS_LOCATION_ENABLED', payload: true });
-          resolve(location);
-        },
-        (error) => {
-          console.error('Location error:', error);
-          let errorMessage = 'Failed to get current location';
-          
-          switch (error.code) {
-            case 1: // PERMISSION_DENIED
-              errorMessage = 'Location permission denied';
-              dispatch({ type: 'SET_HAS_PERMISSION', payload: false });
-              break;
-            case 2: // POSITION_UNAVAILABLE
-              errorMessage = 'Location information unavailable';
-              break;
-            case 3: // TIMEOUT
-              errorMessage = 'Location request timed out';
-              break;
-          }
-          
-          dispatch({ type: 'SET_ERROR', payload: errorMessage });
-          dispatch({ type: 'SET_IS_LOCATION_ENABLED', payload: false });
-          reject(new Error(errorMessage));
-        },
-        options
-      );
+            dispatch({ type: 'SET_CURRENT_LOCATION', payload: location });
+            dispatch({ type: 'SET_IS_LOCATION_ENABLED', payload: true });
+            resolve(location);
+          },
+          (error) => {
+            console.error('Location error:', error);
+            let errorMessage = 'Failed to get current location';
+            
+            switch (error.code) {
+              case 1: // PERMISSION_DENIED
+                errorMessage = 'Location permission denied';
+                dispatch({ type: 'SET_HAS_PERMISSION', payload: false });
+                break;
+              case 2: // POSITION_UNAVAILABLE
+                errorMessage = 'Location information unavailable';
+                break;
+              case 3: // TIMEOUT
+                errorMessage = 'Location request timed out';
+                break;
+              default:
+                errorMessage = 'Location service not available';
+                break;
+            }
+            
+            dispatch({ type: 'SET_ERROR', payload: errorMessage });
+            dispatch({ type: 'SET_IS_LOCATION_ENABLED', payload: false });
+            reject(new Error(errorMessage));
+          },
+          options
+        );
+      } catch (error) {
+        console.error('Geolocation not available:', error);
+        dispatch({ type: 'SET_ERROR', payload: 'Location service not available' });
+        reject(new Error('Location service not available'));
+      }
     });
   };
 
@@ -220,7 +253,11 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
 
     // Clear existing watcher
     if (locationWatcher) {
-      Geolocation.clearWatch(locationWatcher);
+      try {
+        Geolocation.clearWatch(locationWatcher);
+      } catch (error) {
+        console.warn('Failed to clear location watcher:', error);
+      }
     }
 
     const options = {
@@ -230,32 +267,41 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
       fastestInterval: 2000, // Fastest update every 2 seconds
     };
 
-    const watcherId = Geolocation.watchPosition(
-      (position) => {
-        const location: Location = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-          altitude: position.coords.altitude,
-          timestamp: position.timestamp,
-        };
+    try {
+      const watcherId = Geolocation.watchPosition(
+        (position) => {
+          const location: Location = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+            altitude: position.coords.altitude,
+            timestamp: position.timestamp,
+          };
 
-        dispatch({ type: 'SET_CURRENT_LOCATION', payload: location });
-        callback(location);
-      },
-      (error) => {
-        console.error('Location watch error:', error);
-        dispatch({ type: 'SET_ERROR', payload: 'Location tracking failed' });
-      },
-      options
-    );
+          dispatch({ type: 'SET_CURRENT_LOCATION', payload: location });
+          callback(location);
+        },
+        (error) => {
+          console.error('Location watch error:', error);
+          dispatch({ type: 'SET_ERROR', payload: 'Location tracking failed' });
+        },
+        options
+      );
 
-    setLocationWatcher(watcherId);
+      setLocationWatcher(watcherId);
+    } catch (error) {
+      console.error('Failed to start location watching:', error);
+      dispatch({ type: 'SET_ERROR', payload: 'Location service not available' });
+    }
   };
 
   const stopWatchingLocation = (): void => {
     if (locationWatcher) {
-      Geolocation.clearWatch(locationWatcher);
+      try {
+        Geolocation.clearWatch(locationWatcher);
+      } catch (error) {
+        console.warn('Failed to clear location watcher:', error);
+      }
       setLocationWatcher(null);
     }
   };
@@ -267,8 +313,9 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Open Settings', onPress: () => {
-          // You can use react-native-device-info to open settings
-          // DeviceInfo.openSettings();
+          // TODO: Implement settings opening functionality
+          // For now, just show an alert
+          Alert.alert('Settings', 'Please manually open your device settings and enable location access for Memory Lane.');
         }},
       ]
     );

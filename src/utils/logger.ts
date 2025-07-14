@@ -1,31 +1,36 @@
 import { Platform } from 'react-native';
-import { DeviceInfo } from '@/utils/PlatformComponents';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import NetInfo from '@react-native-community/netinfo';
 
-type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'fatal';
+interface LogLevel {
+  DEBUG: 'debug';
+  INFO: 'info';
+  WARN: 'warn';
+  ERROR: 'error';
+}
 
 interface LogEntry {
-  level: LogLevel;
+  level: string;
   message: string;
-  timestamp: number;
+  timestamp: string;
+  context?: string;
+  data?: any;
   deviceInfo?: any;
-  metadata?: any;
-  error?: Error;
-  networkInfo?: any;
 }
 
 class Logger {
   private static instance: Logger;
   private logs: LogEntry[] = [];
   private readonly MAX_LOGS = 1000;
-  private isDebugMode = __DEV__;
 
-  private constructor() {
-    this.setupGlobalErrorHandler();
-  }
+  static readonly LEVELS: LogLevel = {
+    DEBUG: 'debug',
+    INFO: 'info',
+    WARN: 'warn',
+    ERROR: 'error',
+  };
 
-  public static getInstance(): Logger {
+  private constructor() {}
+
+  static getInstance(): Logger {
     if (!Logger.instance) {
       Logger.instance = new Logger();
     }
@@ -36,193 +41,118 @@ class Logger {
     return {
       platform: Platform.OS,
       version: Platform.Version,
-      appVersion: await DeviceInfo.getVersion(),
-      buildNumber: await DeviceInfo.getBuildNumber(),
-      deviceModel: await DeviceInfo.getModel(),
-      systemVersion: await DeviceInfo.getSystemVersion(),
-      deviceId: await DeviceInfo.getUniqueId(),
-      manufacturer: await DeviceInfo.getManufacturer(),
-      brand: await DeviceInfo.getBrand(),
-      memoryUsage: await DeviceInfo.getUsedMemory(),
-      totalMemory: await DeviceInfo.getTotalMemory(),
-      freeDiskStorage: await DeviceInfo.getFreeDiskStorage(),
-      batteryLevel: await DeviceInfo.getBatteryLevel(),
+      isPad: Platform.isPad,
+      isTV: Platform.isTV,
+      constants: Platform.constants,
     };
   }
 
-  private async getNetworkInfo() {
-    const state = await NetInfo.fetch();
-    return {
-      isConnected: state.isConnected,
-      type: state.type,
-      isInternetReachable: state.isInternetReachable,
-      details: state.details,
+  private async log(level: string, message: string, data?: any, context?: string) {
+    try {
+      const deviceInfo = await this.getDeviceInfo();
+      
+      const logEntry: LogEntry = {
+        level,
+        message,
+        timestamp: new Date().toISOString(),
+        context,
+        data,
+        deviceInfo,
+      };
+
+      this.logs.push(logEntry);
+
+      // Keep only the last MAX_LOGS entries
+      if (this.logs.length > this.MAX_LOGS) {
+        this.logs = this.logs.slice(-this.MAX_LOGS);
+      }
+
+      // Console output for development
+      if (__DEV__) {
+        const logMethod = level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log';
+        console[logMethod](`[${level.toUpperCase()}] ${message}`, data || '');
+      }
+
+      // In production, you might want to send logs to a service
+      if (!__DEV__ && level === 'error') {
+        // Send error logs to your analytics service
+        // await this.sendToAnalytics(logEntry);
+      }
+    } catch (error) {
+      console.error('Logger error:', error);
+    }
+  }
+
+  async logDebug(message: string, data?: any, context?: string) {
+    await this.log(Logger.LEVELS.DEBUG, message, data, context);
+  }
+
+  async logInfo(message: string, data?: any, context?: string) {
+    await this.log(Logger.LEVELS.INFO, message, data, context);
+  }
+
+  async logWarn(message: string, data?: any, context?: string) {
+    await this.log(Logger.LEVELS.WARN, message, data, context);
+  }
+
+  async logError(error: any, data?: any, context?: string) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorData = {
+      ...data,
+      error: {
+        message: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : undefined,
+      },
     };
+    await this.log(Logger.LEVELS.ERROR, errorMessage, errorData, context);
   }
 
-  private setupGlobalErrorHandler() {
-    ErrorUtils.setGlobalHandler(async (error: Error, isFatal?: boolean) => {
-      await this.logError(error, { isFatal });
-    });
+  getLogs(): LogEntry[] {
+    return [...this.logs];
   }
 
-  private async persistLogs() {
+  clearLogs(): void {
+    this.logs = [];
+  }
+
+  async exportLogs(): Promise<string> {
     try {
-      await AsyncStorage.setItem('app_logs', JSON.stringify(this.logs));
+      const deviceInfo = await this.getDeviceInfo();
+      const exportData = {
+        logs: this.logs,
+        exportTimestamp: new Date().toISOString(),
+        deviceInfo,
+      };
+      return JSON.stringify(exportData, null, 2);
     } catch (error) {
-      console.error('Failed to persist logs:', error);
+      console.error('Failed to export logs:', error);
+      return JSON.stringify({ error: 'Failed to export logs' });
     }
   }
 
-  public async loadPersistedLogs() {
-    try {
-      const persistedLogs = await AsyncStorage.getItem('app_logs');
-      if (persistedLogs) {
-        this.logs = JSON.parse(persistedLogs);
-      }
-    } catch (error) {
-      console.error('Failed to load persisted logs:', error);
-    }
+  async logPerformance(operation: string, duration: number, data?: any) {
+    await this.logInfo(`Performance: ${operation} took ${duration}ms`, data, 'performance');
   }
 
-  private async addLogEntry(entry: LogEntry) {
-    this.logs.push(entry);
-    if (this.logs.length > this.MAX_LOGS) {
-      this.logs = this.logs.slice(-this.MAX_LOGS);
-    }
-    await this.persistLogs();
-
-    // In development, also log to console
-    if (this.isDebugMode) {
-      switch (entry.level) {
-        case 'debug':
-          console.debug(entry.message, entry.metadata);
-          break;
-        case 'info':
-          console.info(entry.message, entry.metadata);
-          break;
-        case 'warn':
-          console.warn(entry.message, entry.metadata);
-          break;
-        case 'error':
-        case 'fatal':
-          console.error(entry.message, entry.error, entry.metadata);
-          break;
-      }
-    }
+  async logNavigation(from: string, to: string, data?: any) {
+    await this.logInfo(`Navigation: ${from} → ${to}`, data, 'navigation');
   }
 
-  public async logDebug(message: string, metadata?: any) {
-    await this.addLogEntry({
-      level: 'debug',
-      message,
-      timestamp: Date.now(),
-      metadata,
-    });
+  async logUserAction(action: string, data?: any) {
+    await this.logInfo(`User Action: ${action}`, data, 'user-action');
   }
 
-  public async logInfo(message: string, metadata?: any) {
-    await this.addLogEntry({
-      level: 'info',
-      message,
-      timestamp: Date.now(),
-      metadata,
-    });
-  }
-
-  public async logWarning(message: string, metadata?: any) {
-    await this.addLogEntry({
-      level: 'warn',
-      message,
-      timestamp: Date.now(),
-      metadata,
-    });
-  }
-
-  public async logError(error: Error, metadata?: any) {
+  async logApiCall(endpoint: string, method: string, status: number, duration: number, data?: any) {
     const deviceInfo = await this.getDeviceInfo();
-    const networkInfo = await this.getNetworkInfo();
-
-    await this.addLogEntry({
-      level: 'error',
-      message: error.message,
-      timestamp: Date.now(),
-      deviceInfo,
-      networkInfo,
-      error,
-      metadata,
-    });
-  }
-
-  public async logFatal(error: Error, metadata?: any) {
-    const deviceInfo = await this.getDeviceInfo();
-    const networkInfo = await this.getNetworkInfo();
-
-    await this.addLogEntry({
-      level: 'fatal',
-      message: error.message,
-      timestamp: Date.now(),
-      deviceInfo,
-      networkInfo,
-      error,
-      metadata,
-    });
-  }
-
-  public async logNavigationEvent(screenName: string, params?: any) {
-    await this.logInfo(`Navigation: ${screenName}`, { screen: screenName, params });
-  }
-
-  public async logApiRequest(endpoint: string, method: string, status?: number, error?: Error) {
-    const metadata = {
+    await this.logInfo(`API Call: ${method} ${endpoint} (${status}) - ${duration}ms`, {
+      ...data,
       endpoint,
       method,
       status,
-      timestamp: new Date().toISOString(),
-    };
-
-    if (error) {
-      await this.logError(error, metadata);
-    } else {
-      await this.logInfo(`API ${method} ${endpoint}`, metadata);
-    }
-  }
-
-  public async logAppStart() {
-    const deviceInfo = await this.getDeviceInfo();
-    const networkInfo = await this.getNetworkInfo();
-
-    await this.logInfo('App started', {
+      duration,
       deviceInfo,
-      networkInfo,
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  public async logAppError(error: Error, componentStack?: string) {
-    const deviceInfo = await this.getDeviceInfo();
-    const networkInfo = await this.getNetworkInfo();
-
-    await this.logError(error, {
-      componentStack,
-      deviceInfo,
-      networkInfo,
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  public getLogs(level?: LogLevel, limit?: number): LogEntry[] {
-    let filteredLogs = level ? this.logs.filter(log => log.level === level) : this.logs;
-    return limit ? filteredLogs.slice(-limit) : filteredLogs;
-  }
-
-  public async clearLogs() {
-    this.logs = [];
-    await AsyncStorage.removeItem('app_logs');
-  }
-
-  public setDebugMode(enabled: boolean) {
-    this.isDebugMode = enabled;
+    }, 'api');
   }
 }
 

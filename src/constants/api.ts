@@ -66,9 +66,13 @@ export const API_ENDPOINTS = {
   
   // Geospatial
   GEOSPATIAL: {
+    DISCOVER: '/geospatial/discover',
     NEARBY_MEMORIES: '/geospatial/nearby-memories',
     MEMORIES_IN_AREA: '/geospatial/memories-in-area',
-    POPULAR_LOCATIONS: '/geospatial/popular-locations',
+    HEATMAP: '/geospatial/heatmap',
+    NEARBY_USERS: '/geospatial/nearby-users',
+    POPULAR_LOCATIONS: '/geospatial/areas/popular',
+    DISTANCE: '/geospatial/distance',
     USER_LOCATION_HISTORY: '/geospatial/location-history',
   },
   

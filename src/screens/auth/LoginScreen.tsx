@@ -2,62 +2,50 @@ import React, { useState } from 'react';
 import {
   View,
   StyleSheet,
-  ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
+  ScrollView,
+  SafeAreaView,
 } from 'react-native';
 import {
   Text,
   TextInput,
   Button,
-  useTheme,
   HelperText,
+  useTheme,
 } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '@/store/AuthContext';
 import { theme } from '@/constants/theme';
 import { LoginRequest } from '@/types';
-import { useNavigation } from '@react-navigation/native';
-import Logger from '@/utils/logger';
-
-// Import platform-specific LinearGradient
-import { LinearGradient } from '@/utils/PlatformComponents';
 
 const LoginScreen: React.FC = () => {
+  const navigation = useNavigation();
+  const { login } = useAuth();
+  const themeColors = useTheme();
+  
   const [formData, setFormData] = useState<LoginRequest>({
     username: '',
     password: '',
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Partial<LoginRequest>>({});
-  const [generalError, setGeneralError] = useState('');
-
-  const { login } = useAuth();
-  const themeColors = useTheme();
-  const navigation = useNavigation();
+  const [generalError, setGeneralError] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [showPassword, setShowPassword] = useState<boolean>(false);
 
   const containerStyle = Platform.select({
-    web: {
-      ...styles.container,
-      background: `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.secondary} 100%)`,
-    },
-    default: {
-      ...styles.container,
-      backgroundColor: theme.colors.primary,
-    },
+    ios: { flex: 1 },
+    android: { flex: 1 },
   });
 
   const validateForm = (): boolean => {
     const newErrors: Partial<LoginRequest> = {};
 
-    if (!formData.username && !formData.email) {
+    if (!formData.username.trim()) {
       newErrors.username = 'Username or email is required';
     }
 
-    if (!formData.password) {
+    if (!formData.password.trim()) {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
@@ -72,12 +60,11 @@ const LoginScreen: React.FC = () => {
 
     setIsLoading(true);
     setGeneralError('');
+
     try {
-      await login(formData);
+      await login(formData.username, formData.password);
     } catch (error: any) {
-      setErrors({});
-      setGeneralError(error.message || 'Login failed');
-      Logger.logError(error, { context: 'Login' });
+      setGeneralError(error.message || 'Login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -95,9 +82,11 @@ const LoginScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={containerStyle}>
-      <LinearGradient
-        colors={theme.colors.gradient?.primary || [theme.colors.primary, theme.colors.secondary]}
-        style={styles.background}
+      <View
+        style={[
+          styles.background,
+          { backgroundColor: theme.colors.gradient?.primary?.[0] || theme.colors.primary }
+        ]}
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -110,11 +99,7 @@ const LoginScreen: React.FC = () => {
             <View style={styles.formContainer}>
               {/* App Logo/Title */}
               <View style={styles.header}>
-                <Icon 
-                  name="map-marker-path" 
-                  size={60} 
-                  color={theme.colors.onPrimary} 
-                />
+                <Text style={styles.iconText}>🗺️</Text>
                 <Text style={[styles.title, { color: theme.colors.onPrimary }]}>
                   Memory Lane
                 </Text>
@@ -133,7 +118,6 @@ const LoginScreen: React.FC = () => {
                   onChangeText={(value) => handleInputChange('username', value)}
                   error={!!errors.username}
                   style={styles.input}
-                  left={<TextInput.Icon icon="account" />}
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
@@ -152,14 +136,15 @@ const LoginScreen: React.FC = () => {
                   error={!!errors.password}
                   secureTextEntry={!showPassword}
                   style={styles.input}
-                  left={<TextInput.Icon icon="lock" />}
-                  right={
-                    <TextInput.Icon
-                      icon={showPassword ? "eye-off" : "eye"}
-                      onPress={() => setShowPassword(!showPassword)}
-                    />
-                  }
                 />
+                <Button
+                  mode="text"
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.togglePasswordButton}
+                  textColor={theme.colors.onPrimary}
+                >
+                  {showPassword ? 'Hide Password' : 'Show Password'}
+                </Button>
                 {errors.password && (
                   <HelperText type="error" visible={true}>
                     {errors.password}
@@ -213,7 +198,7 @@ const LoginScreen: React.FC = () => {
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
-      </LinearGradient>
+      </View>
     </SafeAreaView>
   );
 };
@@ -241,6 +226,9 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: 40,
+  },
+  iconText: {
+    fontSize: 60,
   },
   title: {
     fontSize: 32,
@@ -280,6 +268,10 @@ const styles = StyleSheet.create({
   signUpText: {
     fontWeight: 'bold',
     textDecorationLine: 'underline',
+  },
+  togglePasswordButton: {
+    marginTop: -10, // Adjust as needed to position it correctly
+    alignSelf: 'flex-end',
   },
 });
 

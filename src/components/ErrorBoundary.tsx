@@ -1,40 +1,44 @@
-import React from 'react';
+import React, { Component, ReactNode } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import Logger from '@/utils/logger';
-import ErrorReportingClass from '@/utils/error-reporting';
-const ErrorReporting = ErrorReportingClass.getInstance();
+import ErrorReporter from '@/utils/error-reporting';
 
 interface Props {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 interface State {
   hasError: boolean;
-  error: Error | null;
+  error?: Error;
+  errorInfo?: any;
 }
 
-class ErrorBoundary extends React.Component<Props, State> {
+class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false };
   }
 
   static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    Logger.logError(error, { context: 'ErrorBoundary', errorInfo });
-    ErrorReporting.reportError(error, errorInfo.componentStack);
+  componentDidCatch(error: Error, errorInfo: any) {
+    ErrorReporter.reportError(error, 'ErrorBoundary', { componentStack: errorInfo.componentStack });
   }
 
   render() {
     if (this.state.hasError) {
       return (
         <View style={styles.container}>
-          <Text style={styles.errorTitle}>Something went wrong</Text>
-          <Text style={styles.errorMessage}>{this.state.error?.message}</Text>
-          <Text style={styles.errorHint}>Check the console for more details</Text>
+          <Text style={styles.title}>Something went wrong</Text>
+          <Text style={styles.message}>
+            We're sorry, but something unexpected happened. Please try restarting the app.
+          </Text>
+          {__DEV__ && this.state.error && (
+            <Text style={styles.errorText}>
+              Error: {this.state.error.message}
+            </Text>
+          )}
         </View>
       );
     }
@@ -49,24 +53,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: '#f5f5f5',
   },
-  errorTitle: {
-    fontSize: 20,
+  title: {
+    fontSize: 24,
     fontWeight: 'bold',
-    color: 'red',
-    marginBottom: 10,
+    marginBottom: 16,
+    color: '#333',
   },
-  errorMessage: {
+  message: {
     fontSize: 16,
-    color: '#666',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 20,
+    color: '#666',
+    lineHeight: 24,
   },
-  errorHint: {
-    fontSize: 14,
+  errorText: {
+    fontSize: 12,
     color: '#999',
     textAlign: 'center',
+    fontFamily: 'monospace',
   },
 });
 
