@@ -1,13 +1,7 @@
-import { Platform } from 'react-native';
-
 // API Configuration
 export const API_CONFIG = {
   // Base URL - Use environment variable or fallback to correct port
-  BASE_URL: process.env.API_BASE_URL || (__DEV__ 
-    ? Platform.OS === 'android' 
-      ? 'http://10.0.2.2:5001/api'  // Android emulator
-      : 'http://172.20.10.5:5001/api'  // iOS simulator (use your Mac's IP)
-    : 'http://localhost:5001/api'), // Production
+  BASE_URL: process.env.API_BASE_URL || 'http://localhost:5001/api',
   
   // Production URL (replace with your actual domain)
   PRODUCTION_URL: process.env.PRODUCTION_API_URL || 'https://your-memory-lane-api.com/api',

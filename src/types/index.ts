@@ -276,6 +276,8 @@ export interface LocationContextType {
   getCurrentLocation: () => Promise<Location | null>;
   watchLocation: (callback: (location: Location) => void) => void;
   stopWatchingLocation: () => void;
+  showLocationSettings: () => Promise<void>;
+  checkLocationPermission: () => Promise<void>;
 }
 
 export interface MemoryContextType {

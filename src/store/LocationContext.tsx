@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, useState, ReactNode } from 'react';
-import { Platform, Alert } from 'react-native';
+import { Platform, Alert, Linking, AppState } from 'react-native';
 import { Geolocation } from '@/utils/PlatformComponents';
 import Toast from 'react-native-toast-message';
 import { Location, LocationContextType } from '@/types';
@@ -13,6 +13,7 @@ try {
   permissions = {
     check: () => Promise.resolve('unavailable'),
     request: () => Promise.resolve('denied'),
+    openSettings: () => Promise.resolve(),
     PERMISSIONS: {
       IOS: { LOCATION_WHEN_IN_USE: 'ios.permission.LOCATION_WHEN_IN_USE' },
       ANDROID: { ACCESS_FINE_LOCATION: 'android.permission.ACCESS_FINE_LOCATION' },
@@ -27,7 +28,7 @@ try {
   };
 }
 
-const { check, request, PERMISSIONS, RESULTS } = permissions;
+const { check, request, openSettings, PERMISSIONS, RESULTS } = permissions;
 
 // Action Types
 type LocationAction =
@@ -91,7 +92,19 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
   // Check location permission on mount
   useEffect(() => {
     checkLocationPermission();
+    
+    // Listen for app state changes to re-check permissions when user returns from settings
+    const handleAppStateChange = (nextAppState: string) => {
+      if (nextAppState === 'active') {
+        console.log('🔧 LocationContext: App became active, re-checking permissions...');
+        checkLocationPermission();
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
     return () => {
+      subscription?.remove();
       if (locationWatcher) {
         Geolocation.clearWatch(locationWatcher);
       }
@@ -99,6 +112,7 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
   }, []);
 
   const checkLocationPermission = async () => {
+    console.log('🔧 LocationContext: checkLocationPermission called');
     try {
       const permission = Platform.select({
         ios: PERMISSIONS.IOS.LOCATION_WHEN_IN_USE,
@@ -110,31 +124,40 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
         return;
       }
 
+      console.log('🔧 LocationContext: Checking permission status...');
       const result = await check(permission);
+      console.log('🔧 LocationContext: Permission check result:', result);
       
       switch (result) {
         case RESULTS.UNAVAILABLE:
           dispatch({ type: 'SET_ERROR', payload: 'Location service is not available' });
+          dispatch({ type: 'SET_HAS_PERMISSION', payload: false });
           break;
         case RESULTS.DENIED:
+          console.log('🔧 LocationContext: Permission denied');
           dispatch({ type: 'SET_HAS_PERMISSION', payload: false });
           break;
         case RESULTS.LIMITED:
         case RESULTS.GRANTED:
+          console.log('🔧 LocationContext: Permission granted/limited');
           dispatch({ type: 'SET_HAS_PERMISSION', payload: true });
           await getCurrentLocation();
           break;
         case RESULTS.BLOCKED:
+          console.log('🔧 LocationContext: Permission blocked');
+          dispatch({ type: 'SET_HAS_PERMISSION', payload: false });
           dispatch({ type: 'SET_ERROR', payload: 'Location permission is blocked' });
           break;
       }
     } catch (error) {
-      console.error('Permission check failed:', error);
+      console.error('🔧 LocationContext: Permission check failed:', error);
       dispatch({ type: 'SET_ERROR', payload: 'Failed to check location permission' });
+      dispatch({ type: 'SET_HAS_PERMISSION', payload: false });
     }
   };
 
   const requestLocationPermission = async (): Promise<boolean> => {
+    console.log('🔧 LocationContext: requestLocationPermission called');
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       dispatch({ type: 'CLEAR_ERROR' });
@@ -144,15 +167,20 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
         android: PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION,
       });
 
+      console.log('🔧 LocationContext: Platform permission:', permission);
+
       if (!permission) {
         throw new Error('Platform not supported');
       }
 
+      console.log('🔧 LocationContext: Requesting permission...');
       const result = await request(permission);
+      console.log('🔧 LocationContext: Permission result:', result);
       
       switch (result) {
         case RESULTS.GRANTED:
         case RESULTS.LIMITED:
+          console.log('🔧 LocationContext: Permission granted/limited');
           dispatch({ type: 'SET_HAS_PERMISSION', payload: true });
           await getCurrentLocation();
           Toast.show({
@@ -163,19 +191,19 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
           return true;
         case RESULTS.DENIED:
         case RESULTS.BLOCKED:
+          console.log('🔧 LocationContext: Permission denied/blocked');
           dispatch({ type: 'SET_HAS_PERMISSION', payload: false });
-          Toast.show({
-            type: 'error',
-            text1: 'Location Access Denied',
-            text2: 'Please enable location access in settings to use this feature.',
-          });
+          // Automatically show settings dialog when permission is denied
+          console.log('🔧 LocationContext: Opening settings...');
+          showLocationSettings();
           return false;
         default:
+          console.log('🔧 LocationContext: Unknown permission result:', result);
           dispatch({ type: 'SET_HAS_PERMISSION', payload: false });
           return false;
       }
     } catch (error) {
-      console.error('Permission request failed:', error);
+      console.error('🔧 LocationContext: Permission request failed:', error);
       dispatch({ type: 'SET_ERROR', payload: 'Failed to request location permission' });
       return false;
     } finally {
@@ -306,19 +334,50 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
     }
   };
 
-  const showLocationSettings = () => {
-    Alert.alert(
-      'Location Access Required',
-      'Memory Lane needs location access to show you nearby memories. Please enable location access in your device settings.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Open Settings', onPress: () => {
-          // TODO: Implement settings opening functionality
-          // For now, just show an alert
-          Alert.alert('Settings', 'Please manually open your device settings and enable location access for Memory Lane.');
-        }},
-      ]
-    );
+  const showLocationSettings = async () => {
+    console.log('🔧 LocationContext: showLocationSettings called');
+    try {
+      console.log('🔧 LocationContext: Attempting to open settings via openSettings()...');
+      // Try to open app settings directly
+      await openSettings();
+      console.log('🔧 LocationContext: Settings opened successfully via openSettings()');
+    } catch (error) {
+      console.error('🔧 LocationContext: Failed to open settings via openSettings():', error);
+      
+      // Fallback: Show alert with manual instructions
+      console.log('🔧 LocationContext: Showing fallback alert...');
+      Alert.alert(
+        'Location Access Required',
+        'Memory Lane needs location access to show you nearby memories. Please enable location access in your device settings.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Open Settings', 
+            onPress: async () => {
+              console.log('🔧 LocationContext: User clicked "Open Settings" in alert');
+              try {
+                // Try to open device settings
+                if (Platform.OS === 'ios') {
+                  console.log('🔧 LocationContext: Opening iOS settings via Linking...');
+                  await Linking.openURL('App-Prefs:Privacy&path=LOCATION');
+                } else {
+                  console.log('🔧 LocationContext: Opening Android settings via Linking...');
+                  await Linking.openSettings();
+                }
+                console.log('🔧 LocationContext: Settings opened successfully via Linking');
+              } catch (linkError) {
+                console.error('🔧 LocationContext: Failed to open settings via Linking:', linkError);
+                Alert.alert(
+                  'Settings',
+                  'Please manually open your device settings and enable location access for Memory Lane.',
+                  [{ text: 'OK' }]
+                );
+              }
+            }
+          },
+        ]
+      );
+    }
   };
 
   const value: LocationContextType = {
@@ -329,6 +388,8 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
     getCurrentLocation,
     watchLocation,
     stopWatchingLocation,
+    showLocationSettings,
+    checkLocationPermission, // Add this to the context
   };
 
   return (

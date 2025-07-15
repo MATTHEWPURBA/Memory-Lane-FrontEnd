@@ -26,7 +26,7 @@ interface MapScreenProps {
 
 const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
   const theme = useTheme();
-  const { currentLocation, hasLocationPermission, requestLocationPermission, getCurrentLocation } = useLocation();
+  const { currentLocation, hasLocationPermission, requestLocationPermission, getCurrentLocation, showLocationSettings, checkLocationPermission } = useLocation();
   const { nearbyMemories, getNearbyMemories, isLoading, error } = useMemory();
   const { isAuthenticated } = useAuth();
   
@@ -61,9 +61,20 @@ const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
 
   // Request location permission on mount
   useEffect(() => {
+    console.log('🔧 MapScreen useEffect - hasLocationPermission:', hasLocationPermission);
     if (!hasLocationPermission) {
-      requestLocationPermission();
+      console.log('🔧 No location permission, requesting...');
+      // Try to request permission first
+      requestLocationPermission().then((granted) => {
+        console.log('🔧 Initial permission request result:', granted);
+        if (!granted) {
+          console.log('🔧 Initial permission denied, opening settings...');
+          // If permission was denied, automatically open settings
+          showLocationSettings();
+        }
+      });
     } else if (!currentLocation) {
+      console.log('🔧 Has permission but no location, getting current location...');
       getCurrentLocation();
     }
   }, [hasLocationPermission]);
@@ -204,6 +215,36 @@ const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
     </TouchableOpacity>
   );
 
+  const handleLocationPermissionRequest = async () => {
+    console.log('🔧 Location permission button clicked');
+    try {
+      console.log('🔧 Attempting to request location permission...');
+      // First try to request permission
+      const granted = await requestLocationPermission();
+      console.log('🔧 Permission request result:', granted);
+      
+      if (!granted) {
+        console.log('🔧 Permission denied, opening settings...');
+        // If permission was denied, open settings
+        await showLocationSettings();
+        console.log('🔧 Settings opened successfully');
+      } else {
+        console.log('🔧 Permission granted successfully!');
+      }
+    } catch (error) {
+      console.error('🔧 Location permission request failed:', error);
+      console.log('🔧 Fallback: opening settings directly...');
+      // Fallback: open settings directly
+      await showLocationSettings();
+      console.log('🔧 Settings opened via fallback');
+    }
+  };
+
+  const handleRefreshPermissions = async () => {
+    console.log('🔧 Manually refreshing location permissions...');
+    await checkLocationPermission();
+  };
+
   const renderPermissionRequest = () => (
     <View style={styles.permissionContainer}>
       <Text style={styles.permissionTitle}>Location Access Required</Text>
@@ -212,10 +253,17 @@ const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
       </Text>
       <Button
         mode="contained"
-        onPress={requestLocationPermission}
+        onPress={handleLocationPermissionRequest}
         style={styles.permissionButton}
       >
         Enable Location Access
+      </Button>
+      <Button
+        mode="outlined"
+        onPress={handleRefreshPermissions}
+        style={[styles.permissionButton, { marginTop: 12 }]}
+      >
+        Refresh Permissions
       </Button>
     </View>
   );
