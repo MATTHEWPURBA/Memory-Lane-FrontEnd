@@ -13,17 +13,33 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.memorylane.app"
+      "bundleIdentifier": "com.memorylane.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Memory Lane needs location access to show you nearby memories and help you discover new places.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Memory Lane needs location access to show you nearby memories and help you discover new places."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#6200EE"
       },
-      "package": "com.memorylane.app"
+      "package": "com.memorylane.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "name": "Memory Lane",
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Memory Lane needs location access to show you nearby memories and help you discover new places."
+        }
+      ]
+    ]
   }
 } 

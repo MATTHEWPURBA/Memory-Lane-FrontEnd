@@ -1,38 +1,12 @@
 import React, { createContext, useContext, useReducer, useEffect, useState, ReactNode } from 'react';
 import { Platform, Alert, Linking, AppState } from 'react-native';
-import { Geolocation } from '@/utils/PlatformComponents';
+import * as Location from 'expo-location';
 import Toast from 'react-native-toast-message';
-import { Location, LocationContextType } from '@/types';
-
-// Handle permissions import with error handling
-let permissions;
-try {
-  permissions = require('react-native-permissions');
-} catch (error) {
-  // Fallback for when native module is not available
-  permissions = {
-    check: () => Promise.resolve('unavailable'),
-    request: () => Promise.resolve('denied'),
-    openSettings: () => Promise.resolve(),
-    PERMISSIONS: {
-      IOS: { LOCATION_WHEN_IN_USE: 'ios.permission.LOCATION_WHEN_IN_USE' },
-      ANDROID: { ACCESS_FINE_LOCATION: 'android.permission.ACCESS_FINE_LOCATION' },
-    },
-    RESULTS: {
-      UNAVAILABLE: 'unavailable',
-      DENIED: 'denied',
-      LIMITED: 'limited',
-      GRANTED: 'granted',
-      BLOCKED: 'blocked',
-    },
-  };
-}
-
-const { check, request, openSettings, PERMISSIONS, RESULTS } = permissions;
+import { Location as LocationType, LocationContextType } from '@/types';
 
 // Action Types
 type LocationAction =
-  | { type: 'SET_CURRENT_LOCATION'; payload: Location | null }
+  | { type: 'SET_CURRENT_LOCATION'; payload: LocationType | null }
   | { type: 'SET_HAS_PERMISSION'; payload: boolean }
   | { type: 'SET_IS_LOCATION_ENABLED'; payload: boolean }
   | { type: 'SET_LOADING'; payload: boolean }
@@ -41,7 +15,7 @@ type LocationAction =
 
 // State Interface
 interface LocationState {
-  currentLocation: Location | null;
+  currentLocation: LocationType | null;
   hasLocationPermission: boolean;
   isLocationEnabled: boolean;
   isLoading: boolean;
@@ -87,17 +61,17 @@ interface LocationProviderProps {
 
 export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(locationReducer, initialState);
-  const [locationWatcher, setLocationWatcher] = useState<number | null>(null);
+  const [locationWatcher, setLocationWatcher] = useState<Location.LocationSubscription | null>(null);
 
   // Check location permission on mount
   useEffect(() => {
-    checkLocationPermission();
+    checkLocationPermissionStatus();
     
     // Listen for app state changes to re-check permissions when user returns from settings
     const handleAppStateChange = (nextAppState: string) => {
       if (nextAppState === 'active') {
         console.log('🔧 LocationContext: App became active, re-checking permissions...');
-        checkLocationPermission();
+        checkLocationPermissionStatus();
       }
     };
 
@@ -106,47 +80,31 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
     return () => {
       subscription?.remove();
       if (locationWatcher) {
-        Geolocation.clearWatch(locationWatcher);
+        locationWatcher.remove();
       }
     };
   }, []);
 
-  const checkLocationPermission = async () => {
-    console.log('🔧 LocationContext: checkLocationPermission called');
+  const checkLocationPermissionStatus = async () => {
+    console.log('🔧 LocationContext: checkLocationPermissionStatus called');
     try {
-      const permission = Platform.select({
-        ios: PERMISSIONS.IOS.LOCATION_WHEN_IN_USE,
-        android: PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION,
-      });
-
-      if (!permission) {
-        dispatch({ type: 'SET_ERROR', payload: 'Platform not supported' });
-        return;
-      }
-
       console.log('🔧 LocationContext: Checking permission status...');
-      const result = await check(permission);
-      console.log('🔧 LocationContext: Permission check result:', result);
+      const { status } = await Location.getForegroundPermissionsAsync();
+      console.log('🔧 LocationContext: Permission check result:', status);
       
-      switch (result) {
-        case RESULTS.UNAVAILABLE:
-          dispatch({ type: 'SET_ERROR', payload: 'Location service is not available' });
-          dispatch({ type: 'SET_HAS_PERMISSION', payload: false });
-          break;
-        case RESULTS.DENIED:
+      switch (status) {
+        case Location.PermissionStatus.DENIED:
           console.log('🔧 LocationContext: Permission denied');
           dispatch({ type: 'SET_HAS_PERMISSION', payload: false });
           break;
-        case RESULTS.LIMITED:
-        case RESULTS.GRANTED:
-          console.log('🔧 LocationContext: Permission granted/limited');
+        case Location.PermissionStatus.GRANTED:
+          console.log('🔧 LocationContext: Permission granted');
           dispatch({ type: 'SET_HAS_PERMISSION', payload: true });
           await getCurrentLocation();
           break;
-        case RESULTS.BLOCKED:
-          console.log('🔧 LocationContext: Permission blocked');
+        case Location.PermissionStatus.UNDETERMINED:
+          console.log('🔧 LocationContext: Permission undetermined');
           dispatch({ type: 'SET_HAS_PERMISSION', payload: false });
-          dispatch({ type: 'SET_ERROR', payload: 'Location permission is blocked' });
           break;
       }
     } catch (error) {
@@ -162,25 +120,13 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
       dispatch({ type: 'SET_LOADING', payload: true });
       dispatch({ type: 'CLEAR_ERROR' });
 
-      const permission = Platform.select({
-        ios: PERMISSIONS.IOS.LOCATION_WHEN_IN_USE,
-        android: PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION,
-      });
-
-      console.log('🔧 LocationContext: Platform permission:', permission);
-
-      if (!permission) {
-        throw new Error('Platform not supported');
-      }
-
       console.log('🔧 LocationContext: Requesting permission...');
-      const result = await request(permission);
-      console.log('🔧 LocationContext: Permission result:', result);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      console.log('🔧 LocationContext: Permission result:', status);
       
-      switch (result) {
-        case RESULTS.GRANTED:
-        case RESULTS.LIMITED:
-          console.log('🔧 LocationContext: Permission granted/limited');
+      switch (status) {
+        case Location.PermissionStatus.GRANTED:
+          console.log('🔧 LocationContext: Permission granted');
           dispatch({ type: 'SET_HAS_PERMISSION', payload: true });
           await getCurrentLocation();
           Toast.show({
@@ -189,16 +135,15 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
             text2: 'You can now discover memories around you!',
           });
           return true;
-        case RESULTS.DENIED:
-        case RESULTS.BLOCKED:
-          console.log('🔧 LocationContext: Permission denied/blocked');
+        case Location.PermissionStatus.DENIED:
+          console.log('🔧 LocationContext: Permission denied');
           dispatch({ type: 'SET_HAS_PERMISSION', payload: false });
           // Automatically show settings dialog when permission is denied
           console.log('🔧 LocationContext: Opening settings...');
           showLocationSettings();
           return false;
         default:
-          console.log('🔧 LocationContext: Unknown permission result:', result);
+          console.log('🔧 LocationContext: Unknown permission result:', status);
           dispatch({ type: 'SET_HAS_PERMISSION', payload: false });
           return false;
       }
@@ -211,122 +156,95 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
     }
   };
 
-  const getCurrentLocation = async (): Promise<Location | null> => {
-    return new Promise((resolve, reject) => {
-      if (!state.hasLocationPermission) {
-        reject(new Error('Location permission not granted'));
-        return;
-      }
+  const getCurrentLocation = async (): Promise<LocationType | null> => {
+    try {
+      console.log('🔧 LocationContext: Getting current location...');
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+        timeInterval: 10000,
+        distanceInterval: 10,
+      });
 
-      const options = {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 10000,
+      const locationData: LocationType = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        accuracy: location.coords.accuracy,
+        altitude: location.coords.altitude,
+        timestamp: location.timestamp,
       };
 
-      try {
-        Geolocation.getCurrentPosition(
-          (position) => {
-            const location: Location = {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-              accuracy: position.coords.accuracy,
-              altitude: position.coords.altitude,
-              timestamp: position.timestamp,
-            };
-
-            dispatch({ type: 'SET_CURRENT_LOCATION', payload: location });
-            dispatch({ type: 'SET_IS_LOCATION_ENABLED', payload: true });
-            resolve(location);
-          },
-          (error) => {
-            console.error('Location error:', error);
-            let errorMessage = 'Failed to get current location';
-            
-            switch (error.code) {
-              case 1: // PERMISSION_DENIED
-                errorMessage = 'Location permission denied';
-                dispatch({ type: 'SET_HAS_PERMISSION', payload: false });
-                break;
-              case 2: // POSITION_UNAVAILABLE
-                errorMessage = 'Location information unavailable';
-                break;
-              case 3: // TIMEOUT
-                errorMessage = 'Location request timed out';
-                break;
-              default:
-                errorMessage = 'Location service not available';
-                break;
-            }
-            
-            dispatch({ type: 'SET_ERROR', payload: errorMessage });
-            dispatch({ type: 'SET_IS_LOCATION_ENABLED', payload: false });
-            reject(new Error(errorMessage));
-          },
-          options
-        );
-      } catch (error) {
-        console.error('Geolocation not available:', error);
-        dispatch({ type: 'SET_ERROR', payload: 'Location service not available' });
-        reject(new Error('Location service not available'));
+      console.log('🔧 LocationContext: Location obtained:', locationData);
+      dispatch({ type: 'SET_CURRENT_LOCATION', payload: locationData });
+      dispatch({ type: 'SET_IS_LOCATION_ENABLED', payload: true });
+      dispatch({ type: 'SET_HAS_PERMISSION', payload: true });
+      return locationData;
+    } catch (error) {
+      console.error('🔧 LocationContext: Location error:', error);
+      let errorMessage = 'Failed to get current location';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('permission')) {
+          errorMessage = 'Location permission denied';
+          dispatch({ type: 'SET_HAS_PERMISSION', payload: false });
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'Location request timed out';
+        } else if (error.message.includes('unavailable')) {
+          errorMessage = 'Location information unavailable';
+        }
       }
-    });
+      
+      dispatch({ type: 'SET_ERROR', payload: errorMessage });
+      dispatch({ type: 'SET_IS_LOCATION_ENABLED', payload: false });
+      throw new Error(errorMessage);
+    }
   };
 
-  const watchLocation = (callback: (location: Location) => void): void => {
-    if (!state.hasLocationPermission) {
-      console.warn('Cannot watch location: permission not granted');
-      return;
-    }
-
+  const watchLocation = (callback: (location: LocationType) => void): void => {
     // Clear existing watcher
     if (locationWatcher) {
       try {
-        Geolocation.clearWatch(locationWatcher);
+        locationWatcher.remove();
       } catch (error) {
         console.warn('Failed to clear location watcher:', error);
       }
     }
 
-    const options = {
-      enableHighAccuracy: true,
-      distanceFilter: 10, // Update every 10 meters
-      interval: 5000, // Update every 5 seconds
-      fastestInterval: 2000, // Fastest update every 2 seconds
+    const startWatching = async () => {
+      try {
+        const subscription = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.High,
+            timeInterval: 5000,
+            distanceInterval: 10,
+          },
+          (location) => {
+            const locationData: LocationType = {
+              latitude: location.coords.latitude,
+              longitude: location.coords.longitude,
+              accuracy: location.coords.accuracy,
+              altitude: location.coords.altitude,
+              timestamp: location.timestamp,
+            };
+
+            dispatch({ type: 'SET_CURRENT_LOCATION', payload: locationData });
+            callback(locationData);
+          }
+        );
+
+        setLocationWatcher(subscription);
+      } catch (error) {
+        console.error('Failed to start location watching:', error);
+        dispatch({ type: 'SET_ERROR', payload: 'Location service not available' });
+      }
     };
 
-    try {
-      const watcherId = Geolocation.watchPosition(
-        (position) => {
-          const location: Location = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-            altitude: position.coords.altitude,
-            timestamp: position.timestamp,
-          };
-
-          dispatch({ type: 'SET_CURRENT_LOCATION', payload: location });
-          callback(location);
-        },
-        (error) => {
-          console.error('Location watch error:', error);
-          dispatch({ type: 'SET_ERROR', payload: 'Location tracking failed' });
-        },
-        options
-      );
-
-      setLocationWatcher(watcherId);
-    } catch (error) {
-      console.error('Failed to start location watching:', error);
-      dispatch({ type: 'SET_ERROR', payload: 'Location service not available' });
-    }
+    startWatching();
   };
 
   const stopWatchingLocation = (): void => {
     if (locationWatcher) {
       try {
-        Geolocation.clearWatch(locationWatcher);
+        locationWatcher.remove();
       } catch (error) {
         console.warn('Failed to clear location watcher:', error);
       }
@@ -337,12 +255,15 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
   const showLocationSettings = async () => {
     console.log('🔧 LocationContext: showLocationSettings called');
     try {
-      console.log('🔧 LocationContext: Attempting to open settings via openSettings()...');
-      // Try to open app settings directly
-      await openSettings();
-      console.log('🔧 LocationContext: Settings opened successfully via openSettings()');
+      console.log('🔧 LocationContext: Attempting to open settings...');
+      if (Platform.OS === 'ios') {
+        await Linking.openURL('App-Prefs:Privacy&path=LOCATION');
+      } else {
+        await Linking.openSettings();
+      }
+      console.log('🔧 LocationContext: Settings opened successfully');
     } catch (error) {
-      console.error('🔧 LocationContext: Failed to open settings via openSettings():', error);
+      console.error('🔧 LocationContext: Failed to open settings:', error);
       
       // Fallback: Show alert with manual instructions
       console.log('🔧 LocationContext: Showing fallback alert...');
@@ -356,17 +277,14 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
             onPress: async () => {
               console.log('🔧 LocationContext: User clicked "Open Settings" in alert');
               try {
-                // Try to open device settings
                 if (Platform.OS === 'ios') {
-                  console.log('🔧 LocationContext: Opening iOS settings via Linking...');
                   await Linking.openURL('App-Prefs:Privacy&path=LOCATION');
                 } else {
-                  console.log('🔧 LocationContext: Opening Android settings via Linking...');
                   await Linking.openSettings();
                 }
-                console.log('🔧 LocationContext: Settings opened successfully via Linking');
+                console.log('🔧 LocationContext: Settings opened successfully via fallback');
               } catch (linkError) {
-                console.error('🔧 LocationContext: Failed to open settings via Linking:', linkError);
+                console.error('🔧 LocationContext: Failed to open settings via fallback:', linkError);
                 Alert.alert(
                   'Settings',
                   'Please manually open your device settings and enable location access for Memory Lane.',
@@ -389,7 +307,7 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
     watchLocation,
     stopWatchingLocation,
     showLocationSettings,
-    checkLocationPermission, // Add this to the context
+    checkLocationPermission: checkLocationPermissionStatus,
   };
 
   return (

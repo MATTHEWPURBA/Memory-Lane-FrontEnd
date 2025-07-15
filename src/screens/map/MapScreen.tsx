@@ -9,7 +9,7 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
-import { Text, useTheme, Button, Card, Chip, ActivityIndicator, IconButton } from 'react-native-paper';
+import { Text, useTheme, Button, Card, ActivityIndicator } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker, Callout } from '../../components/MapView.native.js';
 import { useLocation } from '../../store/LocationContext';
@@ -61,7 +61,7 @@ const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
 
   // Request location permission on mount
   useEffect(() => {
-    console.log('🔧 MapScreen useEffect - hasLocationPermission:', hasLocationPermission);
+    console.log('🔧 MapScreen useEffect - hasLocationPermission:', hasLocationPermission, 'currentLocation:', !!currentLocation);
     if (!hasLocationPermission) {
       console.log('🔧 No location permission, requesting...');
       // Try to request permission first
@@ -77,7 +77,7 @@ const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
       console.log('🔧 Has permission but no location, getting current location...');
       getCurrentLocation();
     }
-  }, [hasLocationPermission]);
+  }, [hasLocationPermission, currentLocation]);
 
   const fetchNearbyMemories = useCallback(async () => {
     if (!currentLocation || !isAuthenticated) return;
@@ -187,15 +187,21 @@ const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
       <Text style={styles.radiusLabel}>Search Radius</Text>
       <View style={styles.radiusButtons}>
         {[0.1, 0.5, 1.0, 2.0].map((radius) => (
-          <Chip
+          <TouchableOpacity
             key={radius}
-            selected={searchRadius === radius}
             onPress={() => handleRadiusChange(radius)}
-            style={styles.radiusChip}
-            textStyle={styles.radiusChipText}
+            style={[
+              styles.radiusButton,
+              searchRadius === radius && styles.radiusButtonSelected
+            ]}
           >
-            {radius}km
-          </Chip>
+            <Text style={[
+              styles.radiusButtonText,
+              searchRadius === radius && styles.radiusButtonTextSelected
+            ]}>
+              {radius}km
+            </Text>
+          </TouchableOpacity>
         ))}
       </View>
     </View>
@@ -207,11 +213,7 @@ const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
       onPress={centerOnUserLocation}
       disabled={!currentLocation}
     >
-      <IconButton
-        icon="crosshairs-gps"
-        size={24}
-        iconColor={theme.colors.primary}
-      />
+      <Text style={{ fontSize: 16 }}>📍</Text>
     </TouchableOpacity>
   );
 
@@ -292,6 +294,8 @@ const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
     </View>
   );
 
+  console.log('🔧 MapScreen render - hasLocationPermission:', hasLocationPermission, 'currentLocation:', !!currentLocation);
+  
   if (!hasLocationPermission) {
     return (
       <SafeAreaView style={styles.container}>
@@ -416,6 +420,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
+  locationButtonInner: {
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  locationButtonText: {
+    fontSize: 16,
+  },
   radiusSelector: {
     position: 'absolute',
     top: 20,
@@ -440,11 +453,26 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
   },
-  radiusChip: {
+  radiusButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     marginRight: 4,
+    borderRadius: 12,
+    backgroundColor: '#f0f0f0',
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
-  radiusChipText: {
+  radiusButtonSelected: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  radiusButtonText: {
     fontSize: 11,
+    color: '#666',
+  },
+  radiusButtonTextSelected: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
   memoryCountContainer: {
     alignItems: 'center',
