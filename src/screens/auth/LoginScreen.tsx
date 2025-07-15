@@ -62,7 +62,7 @@ const LoginScreen: React.FC = () => {
     setGeneralError('');
 
     try {
-      await login(formData.username, formData.password);
+      await login(formData);
     } catch (error: any) {
       setGeneralError(error.message || 'Login failed. Please try again.');
     } finally {

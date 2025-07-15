@@ -370,14 +370,7 @@ class ApiService {
     return this.request(API_ENDPOINTS.MEMORIES.DELETE_MEMORY(memoryId), HTTP_METHODS.DELETE);
   }
 
-  async getNearbyMemories(latitude: number, longitude: number, radius: number = 0.5): Promise<any> {
-    const params = new URLSearchParams({
-      latitude: latitude.toString(),
-      longitude: longitude.toString(),
-      radius: radius.toString(),
-    });
-    return this.request(`${API_ENDPOINTS.MEMORIES.NEARBY}?${params}`, HTTP_METHODS.GET);
-  }
+
 
   async getMemoryFeed(page: number = 1, perPage: number = 20): Promise<any> {
     const params = new URLSearchParams({
