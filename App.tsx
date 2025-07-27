@@ -5,6 +5,8 @@ import { NavigationContainer } from '@react-navigation/native';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
+import * as Font from 'expo-font';
+import { Ionicons } from '@expo/vector-icons';
 
 import { AuthProvider } from '@/store/AuthContext';
 import { LocationProvider } from '@/store/LocationContext';
@@ -28,6 +30,20 @@ const AppContent = () => {
   const initializeApp = async () => {
     try {
       await Logger.logInfo('Starting app initialization');
+      
+      // Load fonts (only on native platforms)
+      if (Platform.OS !== 'web') {
+        try {
+          await Logger.logInfo('Loading fonts');
+          await Font.loadAsync({
+            ...Ionicons.font,
+          });
+        } catch (fontError) {
+          await Logger.logWarn('Font loading failed, continuing without custom fonts', { fontError });
+        }
+      } else {
+        await Logger.logInfo('Skipping font loading on web platform');
+      }
       
       // Initialize error reporting
       await Logger.logInfo('Initializing error reporting');

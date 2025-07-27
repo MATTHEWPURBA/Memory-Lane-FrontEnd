@@ -186,7 +186,7 @@ const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
     <View style={styles.radiusSelector}>
       <Text style={styles.radiusLabel}>Search Radius</Text>
       <View style={styles.radiusButtons}>
-        {[0.1, 0.5, 1.0, 2.0].map((radius) => (
+        {[0.1, 0.5, 1.0].map((radius) => (
           <TouchableOpacity
             key={radius}
             onPress={() => handleRadiusChange(radius)}
@@ -214,6 +214,15 @@ const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
       disabled={!currentLocation}
     >
       <Text style={{ fontSize: 16 }}>📍</Text>
+    </TouchableOpacity>
+  );
+
+  const renderCreateButton = () => (
+    <TouchableOpacity
+      style={styles.createButton}
+      onPress={() => navigation?.navigate('Create')}
+    >
+      <Text style={{ fontSize: 24, color: '#fff' }}>+</Text>
     </TouchableOpacity>
   );
 
@@ -286,15 +295,24 @@ const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
     </View>
   );
 
-  const renderMemoryCount = () => (
-    <View style={styles.memoryCountContainer}>
-      <Text style={styles.memoryCountText}>
-        {nearbyMemories.length} memories nearby
-      </Text>
-    </View>
-  );
+  const renderMemoryCount = () => {
+    let count = 0;
+    if (Array.isArray(nearbyMemories)) {
+      count = nearbyMemories.length;
+    } else if (nearbyMemories && typeof nearbyMemories === 'object' && 'memories' in nearbyMemories && Array.isArray((nearbyMemories as any).memories)) {
+      count = (nearbyMemories as any).memories.length;
+    }
+    
+    return (
+      <View style={styles.memoryCountContainer}>
+        <Text style={styles.memoryCountText}>
+          {count} memories nearby
+        </Text>
+      </View>
+    );
+  };
 
-  console.log('🔧 MapScreen render - hasLocationPermission:', hasLocationPermission, 'currentLocation:', !!currentLocation);
+  console.log('🔧 MapScreen render - hasLocationPermission:', hasLocationPermission, 'currentLocation:', !!currentLocation, 'nearbyMemories:', nearbyMemories);
   
   if (!hasLocationPermission) {
     return (
@@ -328,10 +346,13 @@ const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
           loadingIndicatorColor={theme.colors.primary}
           loadingBackgroundColor={theme.colors.surface}
         >
-          {nearbyMemories.map(renderMemoryMarker)}
+          {Array.isArray(nearbyMemories) ? nearbyMemories.map(renderMemoryMarker) : 
+           (nearbyMemories && typeof nearbyMemories === 'object' && 'memories' in nearbyMemories && Array.isArray((nearbyMemories as any).memories)) ? 
+           (nearbyMemories as any).memories.map(renderMemoryMarker) : null}
         </MapView>
 
         {renderLocationButton()}
+        {renderCreateButton()}
         {renderRadiusSelector()}
       </View>
 
@@ -419,6 +440,22 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+  },
+  createButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: '#007AFF',
+    borderRadius: 30,
+    width: 60,
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
   },
   locationButtonInner: {
     width: 24,

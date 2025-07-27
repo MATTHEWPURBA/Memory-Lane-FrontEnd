@@ -222,7 +222,8 @@ export const MemoryProvider: React.FC<MemoryProviderProps> = ({ children }) => {
       dispatch({ type: 'SET_LOADING', payload: true });
       dispatch({ type: 'CLEAR_ERROR' });
 
-      const memories = await apiService.getNearbyMemories(location.latitude, location.longitude, radius);
+      const response = await apiService.getNearbyMemories(location.latitude, location.longitude, radius);
+      const memories = response.memories || [];
       dispatch({ type: 'SET_NEARBY_MEMORIES', payload: memories });
 
       return memories;
