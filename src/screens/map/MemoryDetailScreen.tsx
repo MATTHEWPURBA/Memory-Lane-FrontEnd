@@ -5,9 +5,16 @@ import {
   ScrollView,
   Alert,
   Dimensions,
+  Platform,
 } from 'react-native';
-import { Text, useTheme, Button, Card, Chip, ActivityIndicator, IconButton } from 'react-native-paper';
+import { Text, useTheme, Button, Card, Chip, ActivityIndicator } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+// Web-specific IconButton import to avoid font loading issues
+const IconButton = Platform.OS === 'web' 
+  ? require('../../utils/webPolyfills/IconButtonPolyfill').default
+  : require('react-native-paper').IconButton;
+
 import { useAuth } from '../../store/AuthContext';
 import { Memory } from '../../types';
 import apiService from '../../services/api';

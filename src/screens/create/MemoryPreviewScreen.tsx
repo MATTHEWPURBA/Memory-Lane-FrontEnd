@@ -7,17 +7,23 @@ import {
   Image,
   TouchableOpacity,
   Share,
+  Platform,
 } from 'react-native';
 import {
   Text,
   Card,
   Chip,
-  IconButton,
   Button,
   useTheme,
   Divider,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+// Web-specific IconButton import to avoid font loading issues
+const IconButton = Platform.OS === 'web' 
+  ? require('../../utils/webPolyfills/IconButtonPolyfill').default
+  : require('react-native-paper').IconButton;
+
 import { Memory } from '../../types';
 
 interface MemoryPreviewScreenProps {

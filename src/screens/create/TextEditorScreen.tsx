@@ -13,11 +13,16 @@ import {
   Button,
   Card,
   Chip,
-  IconButton,
   useTheme,
   SegmentedButtons,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+// Web-specific IconButton import to avoid font loading issues
+const IconButton = Platform.OS === 'web' 
+  ? require('../../utils/webPolyfills/IconButtonPolyfill').default
+  : require('react-native-paper').IconButton;
+
 import { useLocation } from '../../store/LocationContext';
 import { useMemory } from '../../store/MemoryContext';
 import { useAuth } from '../../store/AuthContext';

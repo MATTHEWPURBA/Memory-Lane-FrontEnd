@@ -23,7 +23,7 @@ const Font = {
   getFontFamilyAsync: async (fontFamily) => fontFamily,
 };
 
-// Also create a polyfill for ExpoFontLoader
+// Create a proper ExpoFontLoader polyfill
 const ExpoFontLoader = {
   isLoaded: (fontFamily) => {
     try {
@@ -46,5 +46,13 @@ const ExpoFontLoader = {
 const defaultExport = Font;
 defaultExport.ExpoFontLoader = ExpoFontLoader;
 
+// Also export ExpoFontLoader as a separate default export for compatibility
+const ExpoFontLoaderDefault = {
+  default: ExpoFontLoader,
+  isLoaded: ExpoFontLoader.isLoaded,
+  loadAsync: ExpoFontLoader.loadAsync,
+};
+
 export default defaultExport;
-export { ExpoFontLoader }; 
+export { ExpoFontLoader };
+export { ExpoFontLoaderDefault as ExpoFontLoader_default }; 

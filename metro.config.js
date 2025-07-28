@@ -43,12 +43,15 @@ const config = {
       'react-native$': 'react-native-web',
       // Only add aliases for libraries that have web alternatives
       'react-native-linear-gradient': 'react-native-web-linear-gradient',
-      // Font polyfill for web
-      'expo-font': path.resolve(__dirname, 'src/utils/webPolyfills/FontPolyfill.js'),
+      // Critical font polyfills for web
+      'expo-font/build/ExpoFontLoader': path.resolve(__dirname, 'src/utils/webPolyfills/ExpoFontLoaderPolyfill.js'),
+      'expo-font/build/Font': path.resolve(__dirname, 'src/utils/webPolyfills/FontModulePolyfill.js'),
+      'expo-font': path.resolve(__dirname, 'src/utils/webPolyfills/ExpoFontPolyfill.js'),
       // Vector icons polyfill for web
       '@expo/vector-icons': path.resolve(__dirname, 'src/utils/webPolyfills/VectorIconsPolyfill.js'),
-      // Icon set polyfill for web
       '@expo/vector-icons/build/createIconSet': path.resolve(__dirname, 'src/utils/webPolyfills/IconSetPolyfill.js'),
+      // IconButton polyfill for web
+      'react-native-paper/src/components/IconButton/IconButton': path.resolve(__dirname, 'src/utils/webPolyfills/IconButtonPolyfill.tsx'),
     },
   },
 };

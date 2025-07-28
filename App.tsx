@@ -5,8 +5,50 @@ import { NavigationContainer } from '@react-navigation/native';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
-import * as Font from 'expo-font';
-import { Ionicons } from '@expo/vector-icons';
+
+// Import global font polyfill for web
+import './src/utils/webPolyfills/GlobalFontPolyfill';
+
+// Add debug logging for font loading
+if (typeof window !== 'undefined') {
+  console.log('🔍 App.tsx: Setting up font debugging');
+  
+  // Set up global polyfills IMMEDIATELY
+  (window as any)._ExpoFontLoader = {
+    default: {
+      isLoaded: (fontFamily) => {
+        console.log('🔍 Global _ExpoFontLoader.default.isLoaded() called with:', fontFamily);
+        return true;
+      },
+      loadAsync: async (fontMap) => {
+        console.log('🔍 Global _ExpoFontLoader.default.loadAsync() called');
+        return Promise.resolve();
+      },
+    },
+  };
+
+  (window as any).ExpoFontLoader = {
+    isLoaded: (fontFamily) => {
+      console.log('🔍 Global ExpoFontLoader.isLoaded() called with:', fontFamily);
+      return true;
+    },
+    loadAsync: async (fontMap) => {
+      console.log('🔍 Global ExpoFontLoader.loadAsync() called');
+      return Promise.resolve();
+    },
+  };
+
+  (window as any).Font = {
+    loadAsync: async (fontMap) => {
+      console.log('🔍 Global Font.loadAsync() called');
+      return Promise.resolve();
+    },
+    isLoaded: (fontFamily) => {
+      console.log('🔍 Global Font.isLoaded() called with:', fontFamily);
+      return true;
+    },
+  };
+}
 
 import { AuthProvider } from '@/store/AuthContext';
 import { LocationProvider } from '@/store/LocationContext';
@@ -31,10 +73,12 @@ const AppContent = () => {
     try {
       await Logger.logInfo('Starting app initialization');
       
-      // Load fonts (only on native platforms)
+      // Completely skip font loading on web to avoid font loading errors
       if (Platform.OS !== 'web') {
         try {
           await Logger.logInfo('Loading fonts');
+          const Font = require('expo-font');
+          const { Ionicons } = require('@expo/vector-icons');
           await Font.loadAsync({
             ...Ionicons.font,
           });
@@ -42,7 +86,8 @@ const AppContent = () => {
           await Logger.logWarn('Font loading failed, continuing without custom fonts', { fontError });
         }
       } else {
-        await Logger.logInfo('Skipping font loading on web platform');
+        await Logger.logInfo('Skipping font loading on web platform to avoid font loading errors');
+        // The global polyfills are now set up at the top of the file
       }
       
       // Initialize error reporting
